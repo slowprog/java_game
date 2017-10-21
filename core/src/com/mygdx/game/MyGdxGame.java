@@ -2,79 +2,132 @@ package com.mygdx.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 
+import java.awt.*;
+
 public class MyGdxGame extends ApplicationAdapter {
-    static class Obj {
+    static class Ball {
         private Texture texture;
         private Vector2 position;
-        private float vx, vy;
-        private float angle;
-        private float scale;
+        private Vector2 velocity;
+        private Square square;
 
-        public Obj(Texture texture, float x, float y, float angle) {
-            this.texture = texture;
-            this.position = new Vector2(x, y);
-            this.vx = vx;
-            this.vy = vy;
-            this.angle = angle;
-            this.scale = 1.0f;
+        final private int radius = 50;
+        final private float speed = 500.0f;
+        final private int side = 2 * this.radius + 1;
+
+        public Ball(Square square) {
+            this.square = square;
+
+            this.position = new Vector2(640, 360);
+            this.velocity = new Vector2(1.0f, 1.0f);
+
+            Pixmap pixmap = new Pixmap(this.side, this.side, Pixmap.Format.RGBA8888);
+            pixmap.setColor(Color.BLACK);
+            pixmap.fillCircle(this.radius, this.radius, this.radius);
+
+            this.texture = new Texture(pixmap);
+
+            pixmap.dispose();
         }
 
         public void render(SpriteBatch batch) {
-            batch.draw(texture, position.x - 128, position.y - 128, 128, 128, 256, 256, scale, scale, angle, 0, 0, 256, 256, false, false);
+            batch.draw(this.texture, this.position.x, this.position.y);
         }
-        public void update(float dt) {
-            Vector2 m = new Vector2(Gdx.input.getX(), 720 - Gdx.input.getY());
-            Vector2 v = m.cpy().sub(position).nor().scl(60.0f);
 
-            if (m.cpy().sub(position).len() < 200) {
-                if (Gdx.input.isTouched()) {
-                    position.mulAdd(v, -1 * dt);
-                } else {
-                    position.mulAdd(v, dt);
-                }
+        public void update(float dt) {
+            if (this.check()) {
+                this.velocity.y *= -1.0f;
+                this.velocity.x *= -1.0f;
             }
 
-            angle += dt * 100.0f;
+            if (this.position.y >= 720 - this.side) {
+                this.velocity.y = -1.0f;
+            }
+            if (this.position.x >= 1280 - this.side) {
+                this.velocity.x = -1.0f;
+            }
+            if (this.position.y <= 0) {
+                this.velocity.y = 1.0f;
+            }
+            if (this.position.x <= 0) {
+                this.velocity.x = 1.0f;
+            }
 
-            // if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            //     x += vx * dt;
-            // } else if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            //     x -= vx * dt;
-            // }
-            // if (Gdx.input.isKeyPressed(Input.Keys.W)) {
-            //     y += vy * dt;
-            // } else if (Gdx.input.isKeyPressed(Input.Keys.S)) {
-            //     y -= vy * dt;
-            // }
+            this.position.mulAdd(this.velocity.cpy().nor().scl(this.speed), dt);
+        }
 
-            // if (Gdx.input.justTouched()) {
-            //     if (Math.abs(Gdx.input.getX() - x) < 128 * scale && Math.abs((720 - Gdx.input.getY()) - y) < 128 * scale) {
-            //         scale += 0.1f;
-            //     }
-            // }
+        private boolean check() {
+            Rectangle squareRectangle = new Rectangle(
+                    (int)this.square.getPosition().x,
+                    (int)this.square.getPosition().y,
+                    this.square.getSize(),
+                    this.square.getSize()
+            );
+            Rectangle cirlceRectangle = new Rectangle(
+                    (int)this.position.x,
+                    (int)this.position.y,
+                    this.side,
+                    this.side
+            );
 
+            return squareRectangle.intersects(cirlceRectangle);
+        }
+    }
+
+    static class Square {
+        private Texture texture;
+        private Vector2 position;
+
+        final private int side = 200;
+
+        public Square() {
+            this.position = new Vector2(640, 360);
+
+            Pixmap pixmap = new Pixmap(this.side, this.side, Pixmap.Format.RGBA8888);
+            pixmap.setColor(Color.RED);
+            pixmap.fill();
+
+            this.texture = new Texture(pixmap);
+
+            pixmap.dispose();
+        }
+
+        public void render(SpriteBatch batch) {
+            batch.draw(this.texture, this.position.x, this.position.y);
+        }
+
+        public void update(float dt) {
+            int mx = Gdx.input.getX() - this.side / 2;
+            int my = 720 - Gdx.input.getY() - this.side / 2;
+
+            this.position.set(mx, my);
+        }
+
+        public Vector2 getPosition() {
+            return position;
+        }
+
+        public int getSize() {
+            return this.side;
         }
     }
 
 	SpriteBatch batch;
-	Obj[] objs;
+	Ball ball;
+    Square square;
 
 	@Override
 	public void create () {
-		batch = new SpriteBatch();
-		objs = new Obj[100];
-		Texture texture = new Texture("badlogic.jpg");
-
-        for (int i = 0; i < objs.length; i++) {
-            objs[i] = new Obj(texture, MathUtils.random(0, 1280), MathUtils.random(0, 720), MathUtils.random(0, 1000));
-        }
+		batch   = new SpriteBatch();
+        square  = new Square();
+        ball    = new Ball(square);
     }
 
 	@Override
@@ -85,17 +138,15 @@ public class MyGdxGame extends ApplicationAdapter {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		batch.begin();
 
-        for (int i = 0; i < objs.length; i++) {
-            objs[i].render(batch);
-        }
+        ball.render(batch);
+        square.render(batch);
 
 		batch.end();
 	}
 
 	public void update(float dt) {
-        for (int i = 0; i < objs.length; i++) {
-            objs[i].update(dt);
-        }
+        ball.update(dt);
+        square.update(dt);
 	}
 
 	@Override
