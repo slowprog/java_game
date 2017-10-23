@@ -47,16 +47,16 @@ public class MyGdxGame extends ApplicationAdapter {
                 this.velocity.x *= -1.0f;
             }
 
-            if (this.position.y >= 720 - this.side) {
+            if ((int)this.position.y >= 720 - this.side) {
                 this.velocity.y = -1.0f;
             }
-            if (this.position.x >= 1280 - this.side) {
+            if ((int)this.position.x >= 1280 - this.side) {
                 this.velocity.x = -1.0f;
             }
-            if (this.position.y <= 0) {
+            if ((int)this.position.y <= 0) {
                 this.velocity.y = 1.0f;
             }
-            if (this.position.x <= 0) {
+            if ((int)this.position.x <= 0) {
                 this.velocity.x = 1.0f;
             }
 
