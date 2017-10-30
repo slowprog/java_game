@@ -19,7 +19,7 @@ public class MyGdxGame extends ApplicationAdapter {
         private Square square;
 
         final private int radius = 50;
-        final private float speed = 500.0f;
+        final private float speed = 1500.0f;
         final private int side = 2 * this.radius + 1;
 
         public Ball(Square square) {
@@ -47,17 +47,21 @@ public class MyGdxGame extends ApplicationAdapter {
                 this.velocity.x *= -1.0f;
             }
 
-            if ((int)this.position.y >= 720 - this.side) {
+            if ((int)this.position.y >= 720 - this.side && this.position.y > 0) {
                 this.velocity.y = -1.0f;
+                this.position.y = 720 - this.side;
             }
-            if ((int)this.position.x >= 1280 - this.side) {
+            if ((int)this.position.x >= 1280 - this.side && this.position.x > 0) {
                 this.velocity.x = -1.0f;
+                this.position.x = 1280 - this.side;
             }
-            if ((int)this.position.y <= 0) {
+            if ((int)this.position.y <= 0 && this.position.y < 0) {
                 this.velocity.y = 1.0f;
+                this.position.y = 0;
             }
-            if ((int)this.position.x <= 0) {
+            if ((int)this.position.x <= 0 && this.position.x < 0) {
                 this.velocity.x = 1.0f;
+                this.position.x = 0;
             }
 
             this.position.mulAdd(this.velocity.cpy().nor().scl(this.speed), dt);
