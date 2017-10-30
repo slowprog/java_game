@@ -18,5 +18,6 @@ public class Monster extends AbstractUnit {
         this.spellpower = 0;
         this.defence = 1;
         this.flip = true;
+        this.luck = 50;
     }
 }

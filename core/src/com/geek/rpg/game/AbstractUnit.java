@@ -1,11 +1,13 @@
 package com.geek.rpg.game;
 
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 abstract public class AbstractUnit {
+    protected Texture textureHp;
     protected Texture texture;
     protected String name;
     protected int hp;
@@ -23,11 +25,20 @@ abstract public class AbstractUnit {
 
     // Secondary stats
     protected int defence;
+    protected int luck;
 
     protected Vector2 position;
     protected boolean flip;
     protected float attackAction;
     protected float takeDamageAction;
+
+    public AbstractUnit() {
+        Pixmap pixmap = new Pixmap(100, 20, Pixmap.Format.RGBA8888);
+        pixmap.setColor(1, 0, 0, 1);
+        pixmap.fill();
+
+        this.textureHp = new Texture(pixmap);
+    }
 
     public void setPosition(Vector2 position) {
         this.position = position;
@@ -40,6 +51,10 @@ abstract public class AbstractUnit {
 
     public void takeDamage(int dmg) {
         this.hp -= dmg;
+
+        if (this.hp < 0) {
+            this.hp = 0;
+        }
 
         this.takeDamageAction = 1.0f;
     }
@@ -70,6 +85,14 @@ abstract public class AbstractUnit {
         );
 
         batch.setColor(1f, 1f, 1f, 1f);
+
+        batch.draw(
+                this.textureHp,
+                this.position.x + dx,
+                this.position.y + this.texture.getHeight(),
+                (100 * this.hp / this.maxHp),
+                20
+        );
     }
 
     public void update(float dt) {
@@ -83,6 +106,7 @@ abstract public class AbstractUnit {
     }
 
     public void meleeAttack(AbstractUnit enemy) {
+
         int dmg = this.strength - enemy.defence;
 
         if (dmg < 0) {
@@ -90,6 +114,12 @@ abstract public class AbstractUnit {
         }
 
         this.attackAction = 1.0f;
+
+        int randomLuck = 0 + (int)(Math.random() * 100);
+
+        if (randomLuck > this.luck) {
+            return;
+        }
 
         enemy.takeDamage(dmg);
     }

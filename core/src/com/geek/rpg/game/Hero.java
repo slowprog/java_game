@@ -18,5 +18,6 @@ public class Hero extends AbstractUnit {
         this.spellpower = 10;
         this.defence = 5;
         this.flip = false;
+        this.luck = 70;
     }
 }

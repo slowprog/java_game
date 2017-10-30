@@ -7,23 +7,30 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 
+import java.util.ArrayList;
+
 public class GeekRpgGame extends ApplicationAdapter {
 	SpriteBatch batch;
-	Texture img;
-	AbstractUnit currentUnit;
-	Hero hero;
-	Monster monster;
 	Background background;
+	ArrayList<AbstractUnit> units = new ArrayList<AbstractUnit>();
+	int currentUnit;
 
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
 		background = new Background();
-		hero = new Hero();
+
+		Hero hero = new Hero();
 		hero.setPosition(new Vector2(400, 200));
-		monster = new Monster();
+
+		units.add(hero);
+		
+		Monster monster = new Monster();
 		monster.setPosition(new Vector2(700, 200));
-		currentUnit = hero;
+
+		units.add(monster);
+
+		currentUnit = 0;
 	}
 
 	@Override
@@ -35,31 +42,31 @@ public class GeekRpgGame extends ApplicationAdapter {
 		batch.begin();
 
 		background.render(batch);
-		hero.render(batch);
-		monster.render(batch);
+
+		for (int i = 0; i < units.size(); i++) {
+			units.get(i).render(batch);
+		}
 
 		batch.end();
 	}
 
 
 	public void update(float dt) {
-		monster.update(dt);
-		hero.update(dt);
-
-		if (currentUnit == hero) {
-			if (InputHandler.checkClickInRect(monster.getRect())) {
-				hero.meleeAttack(monster);
-
-				currentUnit = monster;
-			}
+		for (int i = 0; i < units.size(); i++) {
+			units.get(i).update(dt);
 		}
 
+		for (int i = 0; i < units.size(); i++) {
+			if (currentUnit != i && InputHandler.checkClickInRect(units.get(i).getRect())) {
+				units.get(currentUnit).meleeAttack(units.get(i));
 
-		if (currentUnit == monster) {
-			if (InputHandler.checkClickInRect(hero.getRect())) {
-				monster.meleeAttack(hero);
+				currentUnit++;
 
-				currentUnit = hero;
+				if (currentUnit > units.size() - 1) {
+					currentUnit = 0;
+				}
+
+				break;
 			}
 		}
 	}
