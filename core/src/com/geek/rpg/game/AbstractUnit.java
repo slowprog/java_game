@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 abstract public class AbstractUnit {
+    protected GeekRpgGame game;
     protected Texture textureHp;
     protected Texture texture;
     protected String name;
@@ -25,25 +26,39 @@ abstract public class AbstractUnit {
 
     // Secondary stats
     protected int defence;
-    protected int luck;
 
     protected Vector2 position;
     protected boolean flip;
     protected float attackAction;
     protected float takeDamageAction;
 
-    public AbstractUnit() {
-        Pixmap pixmap = new Pixmap(100, 20, Pixmap.Format.RGBA8888);
-        pixmap.setColor(1, 0, 0, 1);
+    public AbstractUnit(GeekRpgGame game, Vector2 position, Texture texture) {
+        this.game = game;
+        this.position = position;
+        this.texture  = texture;
+        this.rect = new Rectangle(position.x, position.y, this.texture.getWidth(), this.texture.getHeight());
+
+        Pixmap pixmap = new Pixmap(90, 20, Pixmap.Format.RGBA8888);
+        pixmap.setColor(1, 1, 1, 1);
         pixmap.fill();
 
         this.textureHp = new Texture(pixmap);
+    }
+
+    public boolean isAlive() {
+        return this.hp > 0;
     }
 
     public void setPosition(Vector2 position) {
         this.position = position;
         this.rect = new Rectangle(position.x, position.y, this.texture.getWidth(), this.texture.getHeight());
     }
+
+    public Vector2 getPosition() {
+        return position;
+    }
+
+    abstract public void getTurn();
 
     public Rectangle getRect() {
         return this.rect;
@@ -70,12 +85,19 @@ abstract public class AbstractUnit {
             dx *= -1;
         }
 
+        float ang = 0;
+
         batch.draw(
                 this.texture,
-                this.position.x + dx,
+                this.position.x + dx + (this.isAlive() ? 0 : this.texture.getWidth()),
                 this.position.y,
+                0,
+                0,
                 this.texture.getWidth(),
                 this.texture.getHeight(),
+                1,
+                1,
+                this.isAlive() ? 0 : 90,
                 0,
                 0,
                 this.texture.getWidth(),
@@ -85,14 +107,14 @@ abstract public class AbstractUnit {
         );
 
         batch.setColor(1f, 1f, 1f, 1f);
+    }
 
-        batch.draw(
-                this.textureHp,
-                this.position.x + dx,
-                this.position.y + this.texture.getHeight(),
-                (100 * this.hp / this.maxHp),
-                20
-        );
+    public void renderInfo(SpriteBatch batch) {
+        batch.setColor(0.5f, 0,0,1);
+        batch.draw(textureHp, position.x, position.y + this.texture.getHeight());
+        batch.setColor(0,1,0,1);
+        batch.draw(textureHp, position.x, position.y + this.texture.getHeight(), 0, 0, (int)((float)this.hp / (float)this.maxHp * textureHp.getWidth()), 20);
+        batch.setColor(1,1,1,1);
     }
 
     public void update(float dt) {
@@ -106,8 +128,9 @@ abstract public class AbstractUnit {
     }
 
     public void meleeAttack(AbstractUnit enemy) {
-
         int dmg = this.strength - enemy.defence;
+
+        dmg = (int)(dmg * 0.8f + (float)dmg * Math.random() * 0.5f);
 
         if (dmg < 0) {
             dmg = 0;
@@ -115,12 +138,21 @@ abstract public class AbstractUnit {
 
         this.attackAction = 1.0f;
 
-        int randomLuck = 0 + (int)(Math.random() * 100);
+        int attackChance = 50 + (this.dexterity - enemy.dexterity) * 1 + (this.level - enemy.level) * 5;
 
-        if (randomLuck > this.luck) {
-            return;
+        if (attackChance > 95) {
+            attackChance = 95;
         }
 
-        enemy.takeDamage(dmg);
+        if (attackChance < 20) {
+            attackChance = 20;
+        }
+
+        if (Math.random() * 100 <= attackChance) {
+            enemy.takeDamage(dmg);
+            this.game.addMessage("-" + dmg, enemy.getPosition().x + 45, enemy.getPosition().y + 75);
+        } else {
+            this.game.addMessage("MISS", enemy.getPosition().x + 45, enemy.getPosition().y + 75);
+        }
     }
 }

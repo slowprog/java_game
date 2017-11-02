@@ -7,7 +7,7 @@ public class Background {
     private Texture texture;
 
     public Background() {
-        this.texture =  new Texture("bg.jpg");
+        this.texture =  new Texture("background.png");
     }
     public void render(SpriteBatch batch) {
         batch.draw(this.texture, 0, 0);
