@@ -41,12 +41,16 @@ public class GeekRpgGame extends ApplicationAdapter {
 		player = new Hero(this, new Vector2(400, 200));
 
 		units.add(player);
-		units.add(new Monster(this, new Vector2(700, 200), player));
-		units.add(new Monster(this, new Vector2(800, 100), player));
+		units.add(new Monster(this, new Vector2(600, 400), player, 70));
+		units.add(new Monster(this, new Vector2(800, 300), player, 50));
+		units.add(new Monster(this, new Vector2(700, 200), player, 10));
+		units.add(new Monster(this, new Vector2(800, 100), player, 80));
 
 		textureSelector = new Texture("selector.png");
 
-		btnGUI.add(new Button("Attack", new Texture("btn.png"), new Rectangle(200, 20, 80, 80)));
+		btnGUI.add(new Button("Health", new Texture("btn-health.png"), new Rectangle(20, 20, 80, 80)));
+		btnGUI.add(new Button("Block", new Texture("btn-block.png"), new Rectangle(110, 20, 80, 80)));
+		btnGUI.add(new Button("Attack", new Texture("btn-attack.png"), new Rectangle(200, 20, 80, 80)));
 
 		currentUnit  = 0;
 		selectedUnit = 0;
@@ -86,10 +90,6 @@ public class GeekRpgGame extends ApplicationAdapter {
 			}
 
 			units.get(i).render(batch);
-
-			if (units.get(i).isAlive()) {
-				units.get(i).renderInfo(batch);
-			}
 		}
 
 		for (int i = 0; i < btnGUI.size(); i++) {
@@ -122,14 +122,24 @@ public class GeekRpgGame extends ApplicationAdapter {
 					if (action.equals("Attack")) {
 						if (units.get(selectedUnit) instanceof Monster) {
 							player.meleeAttack(units.get(selectedUnit));
-							nextTurn();
+							this.nextTurn();
 						}
+					}
+
+					if (action.equals("Block")) {
+						player.setBlock(true);
+						this.nextTurn();
+					}
+
+					if (action.equals("Health")) {
+						player.healing();
+						this.nextTurn();
 					}
 				}
 			}
 		} else {
 			if (((Monster)units.get(currentUnit)).ai(dt)) {
-				nextTurn();
+				this.nextTurn();
 			}
 		}
 
@@ -151,6 +161,8 @@ public class GeekRpgGame extends ApplicationAdapter {
 			if (currentUnit >= units.size()) {
                 currentUnit = 0;
             }
+            // Снимаем блок у каждого следующего, получается он держится целый круг.
+            units.get(currentUnit).setBlock(false);
 		} while (!units.get(currentUnit).isAlive());
 
 		units.get(currentUnit).getTurn();

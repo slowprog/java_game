@@ -8,9 +8,15 @@ public class Monster extends AbstractUnit {
     private Hero target;
     private float sleepTimer;
 
-    public Monster(GeekRpgGame game, Vector2 position, Hero target) {
+    /**
+     * Агрессивность отвечающая за вероятность выбора атаки по сравнению с защитой от 0 до 100.
+     */
+    private int aggression;
+
+    public Monster(GeekRpgGame game, Vector2 position, Hero target, int aggression) {
         super(game, position, new Texture("skeleton.png"));
         this.target = target;
+        this.aggression = aggression;
 
         this.name = "Skelet";
         this.maxHp = 50;
@@ -31,7 +37,18 @@ public class Monster extends AbstractUnit {
             return false;
         }
 
-        meleeAttack(this.target);
+        int randomBlock = (int)(Math.random() * (100 + 1));
+
+        if (this.aggression > randomBlock) {
+            this.meleeAttack(this.target);
+        } else {
+            // Если было выбранно неагрессивное действие, то лечимся, если здоровье меньше максимального.
+            if (this.maxHp > this.hp) {
+                this.healing();
+            } else {
+                this.setBlock(true);
+            }
+        }
 
         return true;
     }
