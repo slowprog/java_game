@@ -2,22 +2,19 @@ package com.geek.rpg.game;
 
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.geek.rpg.game.effects.DefenceStanceEffect;
+import com.geek.rpg.game.effects.Effect;
+import com.geek.rpg.game.effects.RegenerationEffect;
+
+import java.util.ArrayList;
+import java.util.List;
 
 abstract public class AbstractUnit {
-    /**
-     * Дополнительная защита при блоке.
-     */
-    final protected int ADDITIONAL_DEFENCE = 5;
-
-    /**
-     * Процент залечивания.
-     */
-    final protected float HEALING_PERCENT = 0.15f;
-
-    protected GeekRpgGame game;
+    protected GameScreen game;
     protected Texture textureHp;
     protected Texture textureUnit;
     protected Texture textureShield;
@@ -34,25 +31,52 @@ abstract public class AbstractUnit {
     protected int dexterity;
     protected int endurance;
     protected int spellpower;
-
-    // Secondary stats
     protected int defence;
-    protected boolean block;
+
+    private List<Effect> effects;
+
+    /**
+     * Отображать щит поверх юнита или нет.
+     */
+    protected boolean shield;
 
     protected Vector2 position;
     protected boolean flip;
-    protected float attackAction;
     protected float takeDamageAction;
+    protected float attackAction;
 
-    public AbstractUnit(GeekRpgGame game, Vector2 position, Texture textureUnit) {
+    public int getStrength() {
+        return strength;
+    }
+
+    public int getDexterity() {
+        return dexterity;
+    }
+
+    public int getEndurance() {
+        return endurance;
+    }
+
+    public int getSpellpower() {
+        return spellpower;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public AbstractUnit(GameScreen game, Vector2 position, Texture textureUnit) {
         this.game = game;
         this.position = position;
         this.textureUnit  = textureUnit;
         this.rect = new Rectangle(position.x, position.y, this.textureUnit.getWidth(), this.textureUnit.getHeight());
+        this.effects = new ArrayList<Effect>();
 
         Pixmap pixmap = new Pixmap(90, 20, Pixmap.Format.RGBA8888);
-        pixmap.setColor(1, 1, 1, 1);
+        pixmap.setColor(0, 0, 0, 1);
         pixmap.fill();
+        pixmap.setColor(1, 1, 1, 1);
+        pixmap.fillRectangle(2, 2, 86, 16);
 
         this.textureHp = new Texture(pixmap);
 
@@ -72,7 +96,16 @@ abstract public class AbstractUnit {
         return position;
     }
 
-    abstract public void getTurn();
+    public void getTurn() {
+        for (int i = effects.size() - 1; i >= 0; i--) {
+            effects.get(i).tick();
+
+            if (effects.get(i).isEnded() || !this.isAlive()) {
+                effects.get(i).end();
+                effects.remove(i);
+            }
+        }
+    }
 
     public Rectangle getRect() {
         return this.rect;
@@ -88,34 +121,41 @@ abstract public class AbstractUnit {
         this.takeDamageAction = 1.0f;
     }
 
-    public void healing() {
-        if (this.hp < this.maxHp) {
-            // Если вдруг своего здоровья очень мало, то хотя бы +1 сделаем округлением вверх.
-            int tmpHp = (int)Math.ceil(this.hp * this.HEALING_PERCENT);
-            int tmpHpDiff = (this.hp + tmpHp) - this.maxHp;
+    public void heal(float percent) {
+        int prevHp = this.hp;
 
-            if (tmpHpDiff > 0) {
-                tmpHp -= tmpHpDiff;
-            }
+        // Если вдруг своего здоровья очень мало, то хотя бы +1 сделаем округлением вверх.
+        this.hp += (int)Math.ceil(this.hp * percent);
 
-            this.hp += tmpHp;
-
-            this.message("+" + tmpHp);
-        } else {
-            this.message("+0");
+        if (this.hp > this.maxHp) {
+            this.hp = this.maxHp;
         }
+
+        this.message("+" + (this.hp - prevHp), FlyingText.Colors.GREEN);
     }
 
-    public void setBlock(boolean block) {
-        this.block = block;
+    public void defenceStance(int rounds) {
+        DefenceStanceEffect dse = new DefenceStanceEffect();
+        dse.start(game.getInfoSystem(), this, rounds);
+        effects.add(dse);
     }
 
-    public boolean isBlock() {
-        return this.block;
+    public void regenerate(int rounds) {
+        RegenerationEffect dse = new RegenerationEffect();
+        dse.start(game.getInfoSystem(), this, rounds);
+        effects.add(dse);
     }
 
-    public void render(SpriteBatch batch) {
-        float dx = 50f * (float)Math.sin((1f - this.attackAction) * 3.14f);
+    public void setShield(boolean shield) {
+        this.shield = shield;
+    }
+
+    public boolean isShield() {
+        return this.shield;
+    }
+
+    public void render(SpriteBatch batch, BitmapFont font) {
+        float dx = 50f * (float)Math.sin((1.0f - this.attackAction) * 3.14f);
 
         if (this.flip) {
             dx *= -1;
@@ -124,10 +164,10 @@ abstract public class AbstractUnit {
         this.renderUnit(batch, dx);
 
         if (this.isAlive()) {
-            this.renderInfo(batch, dx);
+            this.renderInfo(batch, dx, font);
         }
 
-        if (this.isBlock()) {
+        if (this.isShield()) {
             this.renderShield(batch, dx);
         }
     }
@@ -159,7 +199,7 @@ abstract public class AbstractUnit {
         batch.setColor(1f, 1f, 1f, 1f);
     }
 
-    private void renderInfo(SpriteBatch batch, float dx) {
+    private void renderInfo(SpriteBatch batch, float dx, BitmapFont font) {
         batch.setColor(0.5f, 0,0,1);
 
         batch.draw(
@@ -181,6 +221,8 @@ abstract public class AbstractUnit {
         );
 
         batch.setColor(1,1,1,1);
+
+        font.draw(batch, String.valueOf(this.hp), this.position.x + dx, this.position.y + 169, 90, 1, false);
     }
 
     private void renderShield(SpriteBatch batch, float dx) {
@@ -206,39 +248,27 @@ abstract public class AbstractUnit {
     }
 
     public int getDefence() {
-        return this.defence + (this.isBlock() ? this.ADDITIONAL_DEFENCE : 0);
+        return this.defence;
+    }
+
+    public void setDefence(int defence) {
+        this.defence = defence;
     }
 
     public void meleeAttack(AbstractUnit enemy) {
-        int dmg = this.strength - (enemy.getDefence());
-
-        dmg = (int)(dmg * 0.8f + (float)dmg * Math.random() * 0.5f);
-
-        if (dmg < 0) {
-            dmg = 0;
-        }
-
         this.attackAction = 1.0f;
 
-        int attackChance = 50 + (this.dexterity - enemy.dexterity) * 1 + (this.level - enemy.level) * 5;
+        if (!Calculator.isTargetEvaded(this, enemy)) {
+            int dmg = Calculator.getMeleeDamage(this, enemy);
 
-        if (attackChance > 95) {
-            attackChance = 95;
-        }
-
-        if (attackChance < 20) {
-            attackChance = 20;
-        }
-
-        if (Math.random() * 100 <= attackChance) {
             enemy.takeDamage(dmg);
-            enemy.message("-" + dmg);
+            enemy.message("-" + dmg, FlyingText.Colors.RED);
         } else {
-            enemy.message("Miss");
+            enemy.message("Miss", FlyingText.Colors.WHITE);
         }
     }
 
-    public void message(String text) {
-        this.game.addMessage(text, this.getPosition().x + 45, this.getPosition().y + 75);
+    public void message(String text, FlyingText.Colors color) {
+        this.game.getInfoSystem().addMessage(text, this, color);
     }
 }
