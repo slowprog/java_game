@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector2;
 public class Hero extends AbstractUnit {
     public Hero(GameScreen game, Vector2 position) {
         super(game, position, new Texture("knight.png"));
+
         this.name = "Alex";
         this.maxHp = 100;
         this.hp = this.maxHp;

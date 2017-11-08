@@ -17,10 +17,10 @@ public class InfoSystem {
 
     public void addMessage(String text, AbstractUnit unit, FlyingText.Colors color) {
         this.addMessage(
-                text,
-                unit.getPosition().x + unit.getRect().getWidth() / 2,
-                unit.getPosition().y + unit.getRect().getHeight() / 2,
-                color
+            text,
+            unit.getPosition().x + unit.getRect().getWidth() / 2,
+            unit.getPosition().y + unit.getRect().getHeight() / 2,
+            color
         );
     }
 

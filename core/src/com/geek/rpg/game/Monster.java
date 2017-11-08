@@ -8,12 +8,13 @@ public class Monster extends AbstractUnit {
     private Hero target;
 
     /**
-     * Агрессивность отвечающая за вероятность выбора атаки по сравнению с защитой от 0 до 100.
+     * Агрессивность отвечающая за вероятность выбора агрессивных действий по сравнению с защитными.
      */
     private int aggression;
 
     public Monster(GameScreen game, Vector2 position, Hero target, int aggression) {
         super(game, position, new Texture("skeleton.png"));
+
         this.target = target;
         this.aggression = aggression;
 
@@ -30,7 +31,7 @@ public class Monster extends AbstractUnit {
     }
 
     public boolean ai(float dt) {
-        if (!game.canIMakeTurn()) {
+        if (!this.game.canIMakeTurn()) {
             return false;
         }
 
@@ -41,7 +42,11 @@ public class Monster extends AbstractUnit {
         } else {
             // Если было выбранно неагрессивное действие, то лечимся, если здоровье меньше максимального.
             if (this.maxHp > this.hp) {
-                this.heal(0.15f);
+                if (this.maxHp / 2 > this.hp) {
+                    this.heal();
+                } else {
+                    this.regenerate(3);
+                }
             } else {
                 this.defenceStance(1);
             }

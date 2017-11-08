@@ -6,8 +6,8 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.geek.rpg.game.buttons.ButtonsContainer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,11 +19,11 @@ public class GameScreen implements Screen {
 
     private Hero player;
     private List<AbstractUnit> units;
-    private List<Button> btnGUI;
     private int currentUnit;
     private int selectedUnit;
     private Texture textureSelector;
     private InfoSystem infoSystem;
+    private ButtonsContainer buttonsContainer;
 
     private float animationTimer;
 
@@ -31,109 +31,60 @@ public class GameScreen implements Screen {
         this.batch = batch;
     }
 
-    private void prepareButtons() {
-        final GameScreen that = this;
-
-        this.btnGUI = new ArrayList<Button>();
-
-        btnGUI.add(new Button("Attack", new Texture("btn-attack.png"), new Rectangle(20, 20, 80, 80)) {
-            @Override
-            public void action() {
-                if (units.get(selectedUnit) instanceof Monster) {
-                    player.meleeAttack(units.get(selectedUnit));
-                    that.nextTurn();
-                }
-            }
-        });
-
-        btnGUI.add(new Button("Heal", new Texture("btn-health.png"), new Rectangle(110, 20, 80, 80)) {
-            @Override
-            public void action() {
-                player.heal(0.15f);
-                that.nextTurn();
-            }
-        });
-
-        btnGUI.add(new Button("Regeneration", new Texture("btn-block.png"), new Rectangle(200, 20, 80, 80)) {
-            @Override
-            public void action() {
-                if (units.get(selectedUnit) instanceof Monster) {
-                    player.regenerate(3);
-                    that.nextTurn();
-                }
-            }
-        });
-
-        btnGUI.add(new Button("Block", new Texture("btn-block.png"), new Rectangle(290, 20, 80, 80)) {
-            @Override
-            public void action() {
-                if (units.get(selectedUnit) instanceof Monster) {
-                    player.defenceStance(1);
-                    that.nextTurn();
-                }
-            }
-        });
-    }
-
     @Override
     public void show() {
         this.background = new Background();
         this.infoSystem = new InfoSystem();
 
-        this.font = new BitmapFont(Gdx.files.internal("font.fnt"));
+        this.textureSelector  = new Texture("selector.png");
+        this.buttonsContainer = new ButtonsContainer(this);
 
-        this.units = new ArrayList<AbstractUnit>();
+        this.font   = new BitmapFont(Gdx.files.internal("font.fnt"));
+        this.units  = new ArrayList<AbstractUnit>();
         this.player = new Hero(this, new Vector2(400, 200));
 
-        this.units.add(player);
-        this.units.add(new Monster(this, new Vector2(600, 400), player, 70));
-        units.add(new Monster(this, new Vector2(800, 300), player, 50));
-        units.add(new Monster(this, new Vector2(700, 200), player, 10));
-        units.add(new Monster(this, new Vector2(800, 100), player, 80));
+        this.units.add(this.player);
+        this.units.add(new Monster(this, new Vector2(600, 400), this.player, 70));
+        this.units.add(new Monster(this, new Vector2(800, 300), this.player, 50));
+        this.units.add(new Monster(this, new Vector2(700, 200), this.player, 10));
+        this.units.add(new Monster(this, new Vector2(800, 100), this.player, 80));
 
-        textureSelector = new Texture("selector.png");
-
-        currentUnit  = 0;
-        selectedUnit = 0;
-
-        this.prepareButtons();
-
+        this.currentUnit    = 0;
+        this.selectedUnit   = 0;
         this.animationTimer = 0.0f;
     }
 
     @Override
     public void render(float delta) {
-        update(delta);
+        this.update(delta);
+
         Gdx.gl.glClearColor(1, 1, 1, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        batch.begin();
-        background.render(batch);
 
-        for (int i = 0; i < units.size(); i++) {
-            if (currentUnit == i) {
-                batch.setColor(1,1,0,0.5f);
-                batch.draw(textureSelector, units.get(i).getPosition().x, units.get(i).getPosition().y);
-                batch.setColor(1,1,1,1);
+        this.batch.begin();
+        this.background.render(this.batch);
+
+        for (int i = 0; i < this.units.size(); i++) {
+            if (this.currentUnit == i) {
+                this.batch.setColor(1,1,0,0.5f);
+                this.batch.draw(this.textureSelector, this.units.get(i).getPosition().x, this.units.get(i).getPosition().y);
+                this.batch.setColor(1,1,1,1);
             }
 
-            if (selectedUnit == i) {
-                batch.setColor(1,0,0,0.5f);
-                batch.draw(textureSelector, units.get(i).getPosition().x, units.get(i).getPosition().y );
-                batch.setColor(1,1,1,1);
+            if (this.selectedUnit == i) {
+                this.batch.setColor(1,0,0,0.5f);
+                this.batch.draw(this.textureSelector, this.units.get(i).getPosition().x, this.units.get(i).getPosition().y);
+                this.batch.setColor(1,1,1,1);
             }
 
-            units.get(i).render(batch, font);
+            this.units.get(i).render(this.batch, this.font);
         }
 
-        if (this.isHeroTurn()) {
-            for (int i = 0; i < btnGUI.size(); i++) {
-                btnGUI.get(i).render(batch);
-            }
-        }
+        this.buttonsContainer.render(this.batch);
 
-        this.infoSystem.render(batch, font);
+        this.infoSystem.render(this.batch, this.font);
 
-        batch.end();
+        this.batch.end();
     }
 
     @Override
@@ -166,20 +117,32 @@ public class GameScreen implements Screen {
     }
 
     public boolean isHeroTurn() {
-        return units.get(currentUnit) instanceof Hero;
+        return this.units.get(this.currentUnit) instanceof Hero;
+    }
+
+    public AbstractUnit getUnitCurrent() {
+        return this.units.get(this.currentUnit);
+    }
+
+    public boolean isMonsterSelect() {
+        return this.units.get(this.selectedUnit) instanceof Monster;
+    }
+
+    public AbstractUnit getUnitSelect() {
+        return this.units.get(this.selectedUnit);
     }
 
     public void nextTurn()
     {
         do {
-            currentUnit++;
+            this.currentUnit++;
 
-            if (currentUnit >= units.size()) {
-                currentUnit = 0;
+            if (this.currentUnit >= this.units.size()) {
+                this.currentUnit = 0;
             }
-        } while (!units.get(currentUnit).isAlive());
+        } while (!this.getUnitCurrent().isAlive());
 
-        units.get(currentUnit).getTurn();
+        this.getUnitCurrent().getTurn();
 
         this.animationTimer = 1.0f;
     }
@@ -190,20 +153,21 @@ public class GameScreen implements Screen {
         }
 
         for (int i = 0; i < units.size(); i++) {
-            units.get(i).update(dt);
+            this.units.get(i).update(dt);
 
-            if (currentUnit != i && InputHandler.checkClickInRect(units.get(i).getRect()) && units.get(i).isAlive()) {
-                selectedUnit = i;
+            if (this.currentUnit != i && InputHandler.checkClickInRect(this.units.get(i).getRect()) && this.units.get(i).isAlive()) {
+                this.selectedUnit = i;
             }
         }
 
         if (this.canIMakeTurn()) {
             if (this.isHeroTurn()) {
-                for (int i = 0; i < btnGUI.size(); i++) {
-                    btnGUI.get(i).checkClick();
-                }
+                this.buttonsContainer.enable();
+                this.buttonsContainer.checkClick();
             } else {
-                if (((Monster)units.get(currentUnit)).ai(dt)) {
+                this.buttonsContainer.disable();
+
+                if (((Monster)this.getUnitCurrent()).ai(dt)) {
                     this.nextTurn();
                 }
             }

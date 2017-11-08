@@ -4,33 +4,31 @@ import com.geek.rpg.game.AbstractUnit;
 import com.geek.rpg.game.FlyingText;
 import com.geek.rpg.game.InfoSystem;
 
-public class RegenerationEffect extends Effect {
+public class RegenerationEffect extends AbstractEffect {
     /**
      * Процент залечивания.
      */
-    final protected float HEALING_PERCENT = 0.05f;
+    final private float HEALING_PERCENT = 0.09f;
 
-    private int roundsTotal;
+    public RegenerationEffect(AbstractUnit unit, int rounds) {
+        super(unit, rounds);
+    }
 
     @Override
-    public void start(InfoSystem infoSystem, AbstractUnit unit, int rounds) {
-        super.start(infoSystem, unit, rounds);
-
-        this.roundsTotal = rounds;
-
-        infoSystem.addMessage("Regeneration " + this.roundsTotal + "T/" + Math.floor(this.HEALING_PERCENT * 100) + "%", unit, FlyingText.Colors.GREEN);
+    public void start() {
+        this.getUnit().setRegeneration(true);
     }
 
     @Override
     public void tick() {
         super.tick();
 
-        infoSystem.addMessage("Regeneration", unit, FlyingText.Colors.GREEN);
-        unit.heal(this.HEALING_PERCENT);
+        this.getUnit().messagePositive("Regeneration");
+        this.getUnit().heal(this.HEALING_PERCENT);
     }
 
     @Override
     public void end() {
-        infoSystem.addMessage("Regeneration end", unit, FlyingText.Colors.WHITE);
+        this.getUnit().setRegeneration(false);
     }
 }

@@ -21,4 +21,12 @@ public class InputHandler {
 
         return false;
     }
+
+    public static boolean checkHoverInRect(Rectangle rect) {
+        if (rect.contains(getX(), getY())) {
+            return true;
+        }
+
+        return false;
+    }
 }

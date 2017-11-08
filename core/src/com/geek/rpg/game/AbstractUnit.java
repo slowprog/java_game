@@ -7,70 +7,68 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.geek.rpg.game.effects.DefenceStanceEffect;
-import com.geek.rpg.game.effects.Effect;
+import com.geek.rpg.game.effects.EffectsList;
 import com.geek.rpg.game.effects.RegenerationEffect;
 
-import java.util.ArrayList;
-import java.util.List;
-
 abstract public class AbstractUnit {
+    /**
+     * Процент залечивания по умолчанию для юнита для разового применения.
+     */
+    final private float HEALING_DEFAULT_PERCENT = 0.30f;
+
     protected GameScreen game;
+    private EffectsList effectsList;
+
+    /**
+     * Положение юнита на поле.
+     */
+    protected Vector2 position;
+    protected Rectangle rect;
+    protected boolean flip;
+
+    /**
+     * Все данные непосрсдвенно юнита.
+     */
     protected Texture textureHp;
     protected Texture textureUnit;
-    protected Texture textureShield;
     protected String name;
     protected int hp;
     protected int maxHp;
-
     protected int level;
 
-    protected Rectangle rect;
-
-    // Primary stats
+    /**
+     * Статы юнита.
+     */
     protected int strength;
     protected int dexterity;
     protected int endurance;
     protected int spellpower;
     protected int defence;
 
-    private List<Effect> effects;
-
     /**
      * Отображать щит поверх юнита или нет.
      */
     protected boolean shield;
+    protected Texture textureShield;
 
-    protected Vector2 position;
-    protected boolean flip;
+    /**
+     * Отображать иконку регенерации юнита или нет.
+     */
+    protected boolean regeneration;
+    protected Texture textureRegeneration;
+
+    /**
+     * Продолжительность действий с юнитом.
+     */
     protected float takeDamageAction;
     protected float attackAction;
-
-    public int getStrength() {
-        return strength;
-    }
-
-    public int getDexterity() {
-        return dexterity;
-    }
-
-    public int getEndurance() {
-        return endurance;
-    }
-
-    public int getSpellpower() {
-        return spellpower;
-    }
-
-    public int getLevel() {
-        return level;
-    }
 
     public AbstractUnit(GameScreen game, Vector2 position, Texture textureUnit) {
         this.game = game;
         this.position = position;
         this.textureUnit  = textureUnit;
         this.rect = new Rectangle(position.x, position.y, this.textureUnit.getWidth(), this.textureUnit.getHeight());
-        this.effects = new ArrayList<Effect>();
+        this.effectsList = new EffectsList();
 
         Pixmap pixmap = new Pixmap(90, 20, Pixmap.Format.RGBA8888);
         pixmap.setColor(0, 0, 0, 1);
@@ -81,34 +79,7 @@ abstract public class AbstractUnit {
         this.textureHp = new Texture(pixmap);
 
         this.textureShield = new Texture("shield.png");
-    }
-
-    public boolean isAlive() {
-        return this.hp > 0;
-    }
-
-    public void setPosition(Vector2 position) {
-        this.position = position;
-        this.rect = new Rectangle(position.x, position.y, this.textureUnit.getWidth(), this.textureUnit.getHeight());
-    }
-
-    public Vector2 getPosition() {
-        return position;
-    }
-
-    public void getTurn() {
-        for (int i = effects.size() - 1; i >= 0; i--) {
-            effects.get(i).tick();
-
-            if (effects.get(i).isEnded() || !this.isAlive()) {
-                effects.get(i).end();
-                effects.remove(i);
-            }
-        }
-    }
-
-    public Rectangle getRect() {
-        return this.rect;
+        this.textureRegeneration = new Texture("regeneration.png");
     }
 
     public void takeDamage(int dmg) {
@@ -131,27 +102,32 @@ abstract public class AbstractUnit {
             this.hp = this.maxHp;
         }
 
-        this.message("+" + (this.hp - prevHp), FlyingText.Colors.GREEN);
+        this.messagePositive("+" + (this.hp - prevHp));
+    }
+
+    public void heal() {
+        this.heal(this.HEALING_DEFAULT_PERCENT);
+    }
+
+    public void meleeAttack(AbstractUnit enemy) {
+        this.attackAction = 1.0f;
+
+        if (!Calculator.isTargetEvaded(this, enemy)) {
+            int dmg = Calculator.getMeleeDamage(this, enemy);
+
+            enemy.takeDamage(dmg);
+            enemy.messageNegative("-" + dmg);
+        } else {
+            enemy.messageInfo("Miss");
+        }
     }
 
     public void defenceStance(int rounds) {
-        DefenceStanceEffect dse = new DefenceStanceEffect();
-        dse.start(game.getInfoSystem(), this, rounds);
-        effects.add(dse);
+        this.effectsList.add(new DefenceStanceEffect(this, rounds));
     }
 
     public void regenerate(int rounds) {
-        RegenerationEffect dse = new RegenerationEffect();
-        dse.start(game.getInfoSystem(), this, rounds);
-        effects.add(dse);
-    }
-
-    public void setShield(boolean shield) {
-        this.shield = shield;
-    }
-
-    public boolean isShield() {
-        return this.shield;
+        this.effectsList.add(new RegenerationEffect(this, rounds));
     }
 
     public void render(SpriteBatch batch, BitmapFont font) {
@@ -165,10 +141,14 @@ abstract public class AbstractUnit {
 
         if (this.isAlive()) {
             this.renderInfo(batch, dx, font);
-        }
 
-        if (this.isShield()) {
-            this.renderShield(batch, dx);
+            if (this.shield) {
+                this.renderShield(batch, dx);
+            }
+
+            if (this.regeneration) {
+                this.renderRegeneration(batch, dx);
+            }
         }
     }
 
@@ -178,22 +158,22 @@ abstract public class AbstractUnit {
         }
 
         batch.draw(
-                this.textureUnit,
-                this.position.x + dx + (this.isAlive() ? 0 : this.textureUnit.getWidth()),
-                this.position.y,
-                0,
-                0,
-                this.textureUnit.getWidth(),
-                this.textureUnit.getHeight(),
-                1,
-                1,
-                this.isAlive() ? 0 : 90,
-                0,
-                0,
-                this.textureUnit.getWidth(),
-                this.textureUnit.getHeight(),
-                this.flip,
-                false
+            this.textureUnit,
+            this.position.x + dx + (this.isAlive() ? 0 : this.textureUnit.getWidth()),
+            this.position.y,
+            0,
+            0,
+            this.textureUnit.getWidth(),
+            this.textureUnit.getHeight(),
+            1,
+            1,
+            this.isAlive() ? 0 : 90,
+            0,
+            0,
+            this.textureUnit.getWidth(),
+            this.textureUnit.getHeight(),
+            this.flip,
+            false
         );
 
         batch.setColor(1f, 1f, 1f, 1f);
@@ -203,21 +183,21 @@ abstract public class AbstractUnit {
         batch.setColor(0.5f, 0,0,1);
 
         batch.draw(
-                this.textureHp,
-                this.position.x + dx,
-                this.position.y + this.textureUnit.getHeight()
+            this.textureHp,
+            this.position.x + dx,
+            this.position.y + this.textureUnit.getHeight()
         );
 
         batch.setColor(0,1,0,1);
 
         batch.draw(
-                this.textureHp,
-                this.position.x + dx,
-                this.position.y + this.textureUnit.getHeight(),
-                0,
-                0,
-                (int)((float)this.hp / (float)this.maxHp * textureHp.getWidth()),
-                20
+            this.textureHp,
+            this.position.x + dx,
+            this.position.y + this.textureUnit.getHeight(),
+            0,
+            0,
+            (int)((float)this.hp / (float)this.maxHp * textureHp.getWidth()),
+            20
         );
 
         batch.setColor(1,1,1,1);
@@ -229,9 +209,21 @@ abstract public class AbstractUnit {
         batch.setColor(1, 1, 1, 0.5f);
 
         batch.draw(
-                this.textureShield,
-                this.position.x + dx,
-                this.position.y
+            this.textureShield,
+            this.position.x + dx,
+            this.position.y
+        );
+
+        batch.setColor(1,1,1,1);
+    }
+
+    private void renderRegeneration(SpriteBatch batch, float dx) {
+        batch.setColor(1, 1, 1, 0.9f);
+
+        batch.draw(
+            this.textureRegeneration,
+            this.position.x + dx + 70,
+            this.position.y + 129
         );
 
         batch.setColor(1,1,1,1);
@@ -247,28 +239,67 @@ abstract public class AbstractUnit {
         }
     }
 
+    public void messageInfo(String text) {
+        this.game.getInfoSystem().addMessage(text, this, FlyingText.Colors.WHITE);
+    }
+
+    public void messageNegative(String text) {
+        this.game.getInfoSystem().addMessage(text, this, FlyingText.Colors.RED);
+    }
+
+    public void messagePositive(String text) {
+        this.game.getInfoSystem().addMessage(text, this, FlyingText.Colors.GREEN);
+    }
+
+    public void getTurn() {
+        this.effectsList.tick(this);
+    }
+
+    public void setShield(boolean shield) {
+        this.shield = shield;
+    }
+
+    public boolean isAlive() {
+        return this.hp > 0;
+    }
+
+    public Vector2 getPosition() {
+        return position;
+    }
+
     public int getDefence() {
         return this.defence;
+    }
+
+    public void setRegeneration(boolean regeneration) {
+        this.regeneration = regeneration;
     }
 
     public void setDefence(int defence) {
         this.defence = defence;
     }
 
-    public void meleeAttack(AbstractUnit enemy) {
-        this.attackAction = 1.0f;
-
-        if (!Calculator.isTargetEvaded(this, enemy)) {
-            int dmg = Calculator.getMeleeDamage(this, enemy);
-
-            enemy.takeDamage(dmg);
-            enemy.message("-" + dmg, FlyingText.Colors.RED);
-        } else {
-            enemy.message("Miss", FlyingText.Colors.WHITE);
-        }
+    public Rectangle getRect() {
+        return this.rect;
     }
 
-    public void message(String text, FlyingText.Colors color) {
-        this.game.getInfoSystem().addMessage(text, this, color);
+    public int getStrength() {
+        return this.strength;
+    }
+
+    public int getDexterity() {
+        return this.dexterity;
+    }
+
+    public int getEndurance() {
+        return this.endurance;
+    }
+
+    public int getSpellpower() {
+        return this.spellpower;
+    }
+
+    public int getLevel() {
+        return this.level;
     }
 }
