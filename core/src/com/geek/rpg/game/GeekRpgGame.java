@@ -15,12 +15,12 @@ import java.util.List;
 
 public class GeekRpgGame extends Game {
 	private SpriteBatch batch;
-	private GameScreen gameScreen;
+	private BattleScreen gameScreen;
 
 	@Override
 	public void create () {
 		this.batch 	    = new SpriteBatch();
-		this.gameScreen = new GameScreen(this.batch);
+		this.gameScreen = new BattleScreen(this.batch);
 
 		this.setScreen(gameScreen);
 	}

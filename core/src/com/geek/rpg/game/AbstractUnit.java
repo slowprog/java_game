@@ -16,8 +16,9 @@ abstract public class AbstractUnit {
      */
     final private float HEALING_DEFAULT_PERCENT = 0.30f;
 
-    protected GameScreen game;
+    protected BattleScreen game;
     private EffectsList effectsList;
+    protected AbstractUnit target;
 
     /**
      * Положение юнита на поле.
@@ -63,7 +64,7 @@ abstract public class AbstractUnit {
     protected float takeDamageAction;
     protected float attackAction;
 
-    public AbstractUnit(GameScreen game, Vector2 position, Texture textureUnit) {
+    public AbstractUnit(BattleScreen game, Vector2 position, Texture textureUnit) {
         this.game = game;
         this.position = position;
         this.textureUnit  = textureUnit;
@@ -82,52 +83,31 @@ abstract public class AbstractUnit {
         this.textureRegeneration = new Texture("regeneration.png");
     }
 
-    public void takeDamage(int dmg) {
-        this.hp -= dmg;
-
-        if (this.hp < 0) {
-            this.hp = 0;
-        }
-
-        this.takeDamageAction = 1.0f;
-    }
-
-    public void heal(float percent) {
+    public void changeHp(int value) {
         int prevHp = this.hp;
 
-        // Если вдруг своего здоровья очень мало, то хотя бы +1 сделаем округлением вверх.
-        this.hp += (int)Math.ceil(this.hp * percent);
+        this.hp += value;
 
         if (this.hp > this.maxHp) {
             this.hp = this.maxHp;
         }
 
-        this.messagePositive("+" + (this.hp - prevHp));
-    }
+        if (this.hp < 0) {
+            this.hp = 0;
+        }
 
-    public void heal() {
-        this.heal(this.HEALING_DEFAULT_PERCENT);
-    }
-
-    public void meleeAttack(AbstractUnit enemy) {
-        this.attackAction = 1.0f;
-
-        if (!Calculator.isTargetEvaded(this, enemy)) {
-            int dmg = Calculator.getMeleeDamage(this, enemy);
-
-            enemy.takeDamage(dmg);
-            enemy.messageNegative("-" + dmg);
+        if (value >= 0) {
+            this.messagePositive("+" + (this.hp - prevHp));
+        } else if (value < 0) {
+            this.takeDamageAction = 1.0f;
+            this.messageNegative("-" + (prevHp - this.hp));
         } else {
-            enemy.messageInfo("Miss");
+            this.messageInfo("0");
         }
     }
 
-    public void defenceStance(int rounds) {
-        this.effectsList.add(new DefenceStanceEffect(this, rounds));
-    }
-
-    public void regenerate(int rounds) {
-        this.effectsList.add(new RegenerationEffect(this, rounds));
+    public void miss() {
+        this.messageInfo("Miss");
     }
 
     public void render(SpriteBatch batch, BitmapFont font) {
@@ -239,6 +219,10 @@ abstract public class AbstractUnit {
         }
     }
 
+    public void avade() {
+        this.game.getInfoSystem().addMessage("Miss", this, FlyingText.Colors.WHITE);
+    }
+
     public void messageInfo(String text) {
         this.game.getInfoSystem().addMessage(text, this, FlyingText.Colors.WHITE);
     }
@@ -301,5 +285,25 @@ abstract public class AbstractUnit {
 
     public int getLevel() {
         return this.level;
+    }
+
+    public void setAttackAction(float attackAction) {
+        this.attackAction = attackAction;
+    }
+
+    public AbstractUnit getTarget() {
+        return target;
+    }
+
+    public void setTarget(AbstractUnit target) {
+        this.target = target;
+    }
+
+    public int getMaxHp() {
+        return maxHp;
+    }
+
+    public EffectsList getEffectsList() {
+        return effectsList;
     }
 }

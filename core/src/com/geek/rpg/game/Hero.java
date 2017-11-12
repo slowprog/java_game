@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 
 public class Hero extends AbstractUnit {
-    public Hero(GameScreen game, Vector2 position) {
+    public Hero(BattleScreen game, Vector2 position) {
         super(game, position, new Texture("knight.png"));
 
         this.name = "Alex";

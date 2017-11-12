@@ -24,7 +24,7 @@ public class RegenerationEffect extends AbstractEffect {
         super.tick();
 
         this.getUnit().messagePositive("Regeneration");
-        this.getUnit().heal(this.HEALING_PERCENT);
+        this.getUnit().changeHp((int)(this.getUnit().getMaxHp() * this.HEALING_PERCENT));
     }
 
     @Override

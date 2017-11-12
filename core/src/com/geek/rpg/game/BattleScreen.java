@@ -7,12 +7,13 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
+import com.geek.rpg.game.actions.*;
 import com.geek.rpg.game.buttons.ButtonsContainer;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class GameScreen implements Screen {
+public class BattleScreen implements Screen {
     private SpriteBatch batch;
     private Background background;
     private BitmapFont font;
@@ -27,7 +28,9 @@ public class GameScreen implements Screen {
 
     private float animationTimer;
 
-    public GameScreen(SpriteBatch batch) {
+    private List<BaseAction> actions;
+
+    public BattleScreen(SpriteBatch batch) {
         this.batch = batch;
     }
 
@@ -35,6 +38,12 @@ public class GameScreen implements Screen {
     public void show() {
         this.background = new Background();
         this.infoSystem = new InfoSystem();
+
+        this.actions = new ArrayList<BaseAction>();
+        this.actions.add(new MeleeAttackAction());
+        this.actions.add(new DefenceStanceAction());
+        this.actions.add(new RestAction());
+        this.actions.add(new RegenerationAction());
 
         this.textureSelector  = new Texture("selector.png");
         this.buttonsContainer = new ButtonsContainer(this);
@@ -44,10 +53,10 @@ public class GameScreen implements Screen {
         this.player = new Hero(this, new Vector2(400, 200));
 
         this.units.add(this.player);
-        this.units.add(new Monster(this, new Vector2(600, 400), this.player, 70));
-        this.units.add(new Monster(this, new Vector2(800, 300), this.player, 50));
-        this.units.add(new Monster(this, new Vector2(700, 200), this.player, 10));
-        this.units.add(new Monster(this, new Vector2(800, 100), this.player, 80));
+        this.units.add(new Monster(this, new Vector2(600, 400), this.player, 70, actions.get(0), actions.get(1)));
+        this.units.add(new Monster(this, new Vector2(800, 300), this.player, 50, actions.get(0), actions.get(1)));
+        this.units.add(new Monster(this, new Vector2(700, 200), this.player, 10, actions.get(0), actions.get(1)));
+        this.units.add(new Monster(this, new Vector2(800, 100), this.player, 80, actions.get(0), actions.get(1)));
 
         this.currentUnit    = 0;
         this.selectedUnit   = 0;
@@ -157,6 +166,7 @@ public class GameScreen implements Screen {
 
             if (this.currentUnit != i && InputHandler.checkClickInRect(this.units.get(i).getRect()) && this.units.get(i).isAlive()) {
                 this.selectedUnit = i;
+                this.getUnitCurrent().setTarget(this.getUnitSelect());
             }
         }
 
@@ -178,5 +188,9 @@ public class GameScreen implements Screen {
 
     public boolean canIMakeTurn() {
         return this.animationTimer <= 0.0f;
+    }
+
+    public List<BaseAction> getActions() {
+        return actions;
     }
 }
