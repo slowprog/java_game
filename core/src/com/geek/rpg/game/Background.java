@@ -7,9 +7,10 @@ public class Background {
     private Texture texture;
 
     public Background() {
-        this.texture =  new Texture("background.png");
+        this.texture = Assets.getInstance().getAssetManager().get("background.png", Texture.class);
     }
+
     public void render(SpriteBatch batch) {
-        batch.draw(this.texture, 0, 0);
+        batch.draw(texture, 0, 0);
     }
 }

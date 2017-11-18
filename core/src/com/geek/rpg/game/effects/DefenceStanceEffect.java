@@ -1,26 +1,21 @@
 package com.geek.rpg.game.effects;
 
-import com.geek.rpg.game.AbstractUnit;
 
-public class DefenceStanceEffect extends AbstractEffect {
-    /**
-     * Дополнительная защита при блоке.
-     */
-    final private int ADDITIONAL_DEFENCE = 5;
+import com.geek.rpg.game.FlyingText;
+import com.geek.rpg.game.InfoSystem;
+import com.geek.rpg.game.Unit;
 
-    public DefenceStanceEffect(AbstractUnit unit, int rounds) {
-        super(unit, rounds);
-    }
-
+public class DefenceStanceEffect extends Effect {
     @Override
-    public void start() {
-        this.getUnit().setDefence(this.getUnit().getDefence() + this.ADDITIONAL_DEFENCE);
-        this.getUnit().setShield(true);
+    public void start(InfoSystem infoSystem, Unit unit, int rounds) {
+        super.start(infoSystem, unit, rounds);
+        unit.getStats().setDefence(unit.getStats().getDefence() + 3);
+        infoSystem.addMessage("Shields UP!!! +3", unit, FlyingText.Colors.GREEN);
     }
 
     @Override
     public void end() {
-        this.getUnit().setDefence(this.getUnit().getDefence() - this.ADDITIONAL_DEFENCE);
-        this.getUnit().setShield(false);
+        unit.getStats().setDefence(unit.getStats().getDefence() - 3);
+        infoSystem.addMessage("Shields DOWN!!! -3", unit, FlyingText.Colors.WHITE);
     }
 }

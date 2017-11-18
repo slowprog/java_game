@@ -6,24 +6,35 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 
 public class SpecialFX {
+    private Vector2 positionFrom;
+    private Vector2 positionTo;
     private Vector2 position;
+    private float scaleFrom;
+    private float scaleTo;
     private float time;
-    private float speed;
+    private float frameSpeed;
     private float maxTime;
     private int maxFrames;
-    private Texture texture;
+    private TextureRegion texture;
     private TextureRegion[] regions;
 
+    public boolean isActive() {
+        return time > 0.0f;
+    }
+
     public SpecialFX() {
-        this.maxFrames = 64;
-        this.speed = 0.05f;
-        this.time = -1.0f;
-        this.maxTime = this.maxFrames * this.speed;
-        this.texture = new Texture("explosion64.png");
-
-        TextureRegion[][] tr = new TextureRegion(this.texture).split(64, 64);
-
-        this.regions = new TextureRegion[this.maxFrames];
+        positionFrom = new Vector2(0, 0);
+        positionTo = new Vector2(0, 0);
+        position = new Vector2(0, 0);
+        maxFrames = 64;
+        frameSpeed = 0.01f;
+        time = -1.0f;
+        scaleFrom = 1.0f;
+        scaleTo = 1.0f;
+        maxTime = maxFrames * frameSpeed;
+        texture = Assets.getInstance().getAtlas().findRegion("explosion64");
+        TextureRegion[][] tr = new TextureRegion(texture).split(64, 64);
+        regions = new TextureRegion[maxFrames];
         int counter = 0;
         for (int i = 0; i < tr.length; i++) {
             for (int j = 0; j < tr[0].length; j++) {
@@ -33,27 +44,37 @@ public class SpecialFX {
         }
     }
 
-    public boolean isActive() {
-        return this.time > 0.0f;
-    }
+    public void setup(float xFrom, float yFrom, float xTo, float yTo, float maxTime, float scaleFrom, float scaleTo, boolean oneCycle) {
+        this.positionFrom.set(xFrom, yFrom);
+        this.positionTo.set(xTo, yTo);
+        this.maxTime = maxTime;
 
-    public void setup(float x, float y) {
-        this.position.set(x, y);
+        if (oneCycle) {
+            frameSpeed = maxTime / maxFrames;
+        } else {
+            frameSpeed = 0.01f;
+        }
+
         this.time = 0.01f;
+        this.scaleFrom = scaleFrom;
+        this.scaleTo = scaleTo;
     }
 
     public void render(SpriteBatch batch) {
-        if (this.isActive()) {
-            batch.draw(this.regions[(int) (time / speed)], position.x, position.y);
+        if (isActive()) {
+            int currentFrame = (int) (time / frameSpeed) % maxFrames;
+            float x = positionFrom.x + (time / maxTime) * (positionTo.x - positionFrom.x);
+            float y = positionFrom.y + (time / maxTime) * (positionTo.y - positionFrom.y);
+            float currentScale = scaleFrom + (time / maxTime) * (scaleTo - scaleFrom);
+            batch.draw(regions[currentFrame], x - 32, y - 32, 32, 32, 64, 64, currentScale, currentScale, 0);
         }
     }
 
     public void update(float dt) {
-        if (this.isActive()) {
+        if (isActive()) {
             time += dt;
-
-            if (this.time > this.maxTime) {
-                this.time = -1.0f;
+            if (time > maxTime) {
+                time = -1.0f;
             }
         }
     }

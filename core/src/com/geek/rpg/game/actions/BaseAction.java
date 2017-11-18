@@ -1,14 +1,24 @@
 package com.geek.rpg.game.actions;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.geek.rpg.game.AbstractUnit;
+import com.geek.rpg.game.Unit;
 
-abstract public class BaseAction {
-    protected Texture btnTexture;
+public abstract class BaseAction {
+    String name;
+    Texture btnTexture;
+
+    public BaseAction(String name, Texture btnTexture) {
+        this.name = name;
+        this.btnTexture = btnTexture;
+    }
+
+    public String getName() {
+        return name;
+    }
 
     public Texture getBtnTexture() {
         return btnTexture;
     }
 
-    abstract public boolean action(AbstractUnit me);
+    public abstract boolean action(Unit me);
 }

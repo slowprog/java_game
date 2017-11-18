@@ -3,6 +3,7 @@ package com.geek.rpg.game;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 
 public class FlyingText {
     public enum Colors {
@@ -25,6 +26,10 @@ public class FlyingText {
     private boolean active;
     private Colors color;
 
+    public boolean isActive() {
+        return active;
+    }
+
     public FlyingText() {
         this.position = new Vector2(0, 0);
         this.text = "";
@@ -39,10 +44,6 @@ public class FlyingText {
         this.color = color;
     }
 
-    public boolean isActive() {
-        return this.active;
-    }
-
     public void render(SpriteBatch batch, BitmapFont font) {
         font.setColor(color.r, color.g, color.b, 1.0f - time / 2.0f);
         font.draw(batch, text, position.x, position.y);
@@ -50,9 +51,8 @@ public class FlyingText {
     }
 
     public void update(float dt) {
-        position.add(50 * dt, 50 * dt);
+        position.add(20 * dt, 60 * dt);
         time += dt;
-
         if (time > 2.0f) {
             time = 0.0f;
             active = false;

@@ -1,34 +1,68 @@
 package com.geek.rpg.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.geek.rpg.game.actions.*;
-import com.geek.rpg.game.buttons.ButtonsContainer;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.geek.rpg.game.actions.BaseAction;
+import com.geek.rpg.game.actions.DefenceStanceAction;
+import com.geek.rpg.game.actions.MeleeAttackAction;
+import com.geek.rpg.game.actions.RestAction;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class BattleScreen implements Screen {
     private SpriteBatch batch;
-    private Background background;
     private BitmapFont font;
-
-    private Hero player;
-    private List<AbstractUnit> units;
-    private int currentUnit;
-    private int selectedUnit;
-    private Texture textureSelector;
+    private Background background;
+    private List<Unit> units;
+    private int currentUnitIndex;
+    private Unit currentUnit;
+    private TextureRegion textureSelector;
     private InfoSystem infoSystem;
-    private ButtonsContainer buttonsContainer;
-
+    private UnitFactory unitFactory;
+    private Vector2[][] stayPoints;
     private float animationTimer;
+    private Stage stage;
+    private Skin skin;
+    private MyInputProcessor mip;
+    private SpecialFxEmitter specialFxEmitter;
 
-    private List<BaseAction> actions;
+    public SpecialFxEmitter getSpecialFxEmitter() {
+        return specialFxEmitter;
+    }
+
+    public List<Unit> getUnits() {
+        return units;
+    }
+
+    public Vector2[][] getStayPoints() {
+        return stayPoints;
+    }
+
+    public boolean canIMakeTurn() {
+        return animationTimer <= 0.0f;
+    }
+
+    public InfoSystem getInfoSystem() {
+        return infoSystem;
+    }
 
     public BattleScreen(SpriteBatch batch) {
         this.batch = batch;
@@ -36,161 +70,211 @@ public class BattleScreen implements Screen {
 
     @Override
     public void show() {
-        this.background = new Background();
-        this.infoSystem = new InfoSystem();
+        // Подсчитываем сетку для расстановки юнитов.
+        final int LEFT_STAYPOINT_X = 180;
+        final int TOP_STAYPOINT_Y = 400;
+        final int DISTANCE_BETWEEN_UNITS_X = 160;
+        final int DISTANCE_BETWEEN_UNITS_Y = 120;
+        final int DISTANCE_BETWEEN_TEAMS = 300;
 
-        this.actions = new ArrayList<BaseAction>();
-        this.actions.add(new MeleeAttackAction());
-        this.actions.add(new DefenceStanceAction());
-        this.actions.add(new RestAction());
-        this.actions.add(new RegenerationAction());
+        stayPoints = new Vector2[4][3];
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 3; j++) {
+                int x = LEFT_STAYPOINT_X + i * DISTANCE_BETWEEN_UNITS_X + j * 20;
+                if (i > 1) x += DISTANCE_BETWEEN_TEAMS;
+                stayPoints[i][j] = new Vector2(x, TOP_STAYPOINT_Y - j * DISTANCE_BETWEEN_UNITS_Y);
+            }
+        }
 
-        this.textureSelector  = new Texture("selector.png");
-        this.buttonsContainer = new ButtonsContainer(this);
+        Hero player1 = new Hero();
+        Hero player2 = new Hero();
 
-        this.font   = new BitmapFont(Gdx.files.internal("font.fnt"));
-        this.units  = new ArrayList<AbstractUnit>();
-        this.player = new Hero(this, new Vector2(400, 200));
+        unitFactory = new UnitFactory(this);
+        units = new ArrayList<Unit>();
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.KNIGHT, this, player1, true, 1, 0);
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.KNIGHT, this, player1, true, 1, 1);
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.KNIGHT, this, player1, true, 1, 2);
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player1, true, 0, 0);
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player1, true, 0, 1);
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player1, true, 0, 2);
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player2, false, 2, 0);
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player2, false, 2, 1);
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player2, false, 2, 2);
+        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.KNIGHT, this, player2, false, 3, 1);
 
-        this.units.add(this.player);
-        this.units.add(new Monster(this, new Vector2(600, 400), this.player, 70, actions.get(0), actions.get(1)));
-        this.units.add(new Monster(this, new Vector2(800, 300), this.player, 50, actions.get(0), actions.get(1)));
-        this.units.add(new Monster(this, new Vector2(700, 200), this.player, 10, actions.get(0), actions.get(1)));
-        this.units.add(new Monster(this, new Vector2(800, 100), this.player, 80, actions.get(0), actions.get(1)));
+        mip = new MyInputProcessor();
+        Gdx.input.setInputProcessor(mip);
+        background = new Background();
 
-        this.currentUnit    = 0;
-        this.selectedUnit   = 0;
-        this.animationTimer = 0.0f;
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("zorque.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameter.size = 24;
+        parameter.borderColor = Color.BLACK;
+        parameter.borderWidth = 1;
+        parameter.shadowColor = Color.BLACK;
+        parameter.shadowOffsetX = -2;
+        parameter.shadowOffsetY = 2;
+        parameter.color = Color.WHITE;
+        font = generator.generateFont(parameter);
+        generator.dispose();
+
+        infoSystem = new InfoSystem();
+        textureSelector = Assets.getInstance().getAtlas().findRegion("selector");
+
+        currentUnitIndex = 0;
+        currentUnit = units.get(currentUnitIndex);
+//        sfx = new SpecialFX();
+        specialFxEmitter = new SpecialFxEmitter();
+        createGUI();
+        InputMultiplexer im = new InputMultiplexer(stage, mip);
+        Gdx.input.setInputProcessor(im);
+        animationTimer = 0.0f;
+    }
+
+    public void createGUI() {
+        stage = new Stage(ScreenManager.getInstance().getViewport(), batch);
+        skin = new Skin();
+        List<BaseAction> list = unitFactory.getActions();
+        for (BaseAction o : list) {
+            skin.add(o.getName(), o.getBtnTexture());
+            Button.ButtonStyle buttonStyle = new Button.ButtonStyle();
+            buttonStyle.up = skin.newDrawable(o.getName(), Color.WHITE);
+            skin.add(o.getName(), buttonStyle);
+        }
+        for (Unit o : units) {
+            if (!o.isAI()) {
+                Group actionPanel = new Group();
+                Image image = new Image(Assets.getInstance().getAssetManager().get("actionPanel.png", Texture.class));
+                actionPanel.addActor(image);
+                actionPanel.setPosition(RpgGame.SCREEN_WIDTH / 2 - 840 / 2, 5);
+                actionPanel.setVisible(false);
+                o.setActionPanel(actionPanel);
+                stage.addActor(actionPanel);
+
+                int counter = 0;
+                for (BaseAction a : o.getActions()) {
+                    final BaseAction ba = a;
+                    Button btn = new Button(skin, a.getName());
+                    btn.setPosition(30 + counter * 100, 30);
+                    btn.addListener(new ChangeListener() {
+                        @Override
+                        public void changed(ChangeEvent event, Actor actor) {
+                            if (!currentUnit.isAI()) {
+                                if (ba.action(currentUnit)) {
+                                    nextTurn();
+                                }
+                            }
+                        }
+                    });
+                    actionPanel.addActor(btn);
+                    counter++;
+                }
+            }
+        }
+    }
+
+    public boolean isHeroTurn() {
+        return currentUnit.getAutopilot() == null;
+    }
+
+    public void nextTurn() {
+        for (int i = 0; i < units.size(); i++) {
+            if (units.get(i).getActionPanel() != null) {
+                units.get(i).getActionPanel().setVisible(false);
+            }
+        }
+        do {
+            currentUnitIndex++;
+            if (currentUnitIndex >= units.size()) {
+                currentUnitIndex = 0;
+            }
+        } while (!units.get(currentUnitIndex).isAlive());
+        currentUnit = units.get(currentUnitIndex);
+        currentUnit.getTurn();
+        animationTimer = 1.0f;
+        if (currentUnit.getActionPanel() != null) {
+            currentUnit.getActionPanel().setVisible(true);
+        }
+    }
+
+    public void update(float dt) {
+        if(isHeroTurn() && canIMakeTurn()) {
+            stage.act(dt);
+            if(currentUnit.getActionPanel() != null) {
+                currentUnit.getActionPanel().setVisible(true);
+            }
+        }
+        if (animationTimer > 0.0f) {
+            animationTimer -= dt;
+        }
+        for (int i = 0; i < units.size(); i++) {
+            units.get(i).update(dt);
+            if (mip.isTouchedInArea(units.get(i).getRect()) && units.get(i).isAlive()) {
+                currentUnit.setTarget(units.get(i));
+            }
+        }
+        if (!isHeroTurn()) {
+            if (currentUnit.getAutopilot().turn(currentUnit)) {
+                nextTurn();
+            }
+        }
+        infoSystem.update(dt);
+//        if (mip.isTouched()) {
+//            sfx.setup(mip.getX(), mip.getY());
+//        }
+        specialFxEmitter.update(dt);
+//        if (sfx.isActive()) {
+//            sfx.update(dt);
+//        }
     }
 
     @Override
     public void render(float delta) {
-        this.update(delta);
-
-        Gdx.gl.glClearColor(1, 1, 1, 1);
+        update(delta);
+        Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        this.batch.begin();
-        this.background.render(this.batch);
-
-        for (int i = 0; i < this.units.size(); i++) {
-            if (this.currentUnit == i) {
-                this.batch.setColor(1,1,0,0.5f);
-                this.batch.draw(this.textureSelector, this.units.get(i).getPosition().x, this.units.get(i).getPosition().y);
-                this.batch.setColor(1,1,1,1);
-            }
-
-            if (this.selectedUnit == i) {
-                this.batch.setColor(1,0,0,0.5f);
-                this.batch.draw(this.textureSelector, this.units.get(i).getPosition().x, this.units.get(i).getPosition().y);
-                this.batch.setColor(1,1,1,1);
-            }
-
-            this.units.get(i).render(this.batch, this.font);
+        batch.begin();
+        background.render(batch);
+        batch.setColor(1, 1, 0, 0.8f);
+        batch.draw(textureSelector, currentUnit.getPosition().x, currentUnit.getPosition().y - 5);
+        if (isHeroTurn() && currentUnit.getTarget() != null) {
+            batch.setColor(1, 0, 0, 0.8f);
+            batch.draw(textureSelector, currentUnit.getTarget().getPosition().x, currentUnit.getTarget().getPosition().y - 5);
         }
-
-        this.buttonsContainer.render(this.batch);
-
-        this.infoSystem.render(this.batch, this.font);
-
-        this.batch.end();
+        batch.setColor(1, 1, 1, 1);
+        for (int i = 0; i < units.size(); i++) {
+            units.get(i).render(batch);
+            if (units.get(i).isAlive()) {
+                units.get(i).renderInfo(batch, font);
+            }
+        }
+        infoSystem.render(batch, font);
+//        if (sfx.isActive()) {
+//            sfx.render(batch);
+//        }
+        specialFxEmitter.render(batch);
+        batch.end();
+        stage.draw();
     }
 
     @Override
     public void resize(int width, int height) {
-
+        ScreenManager.getInstance().onResize(width, height);
     }
 
     @Override
     public void pause() {
-
     }
 
     @Override
     public void resume() {
-
     }
 
     @Override
     public void hide() {
-
     }
 
     @Override
     public void dispose() {
-
-    }
-
-    public InfoSystem getInfoSystem() {
-        return this.infoSystem;
-    }
-
-    public boolean isHeroTurn() {
-        return this.units.get(this.currentUnit) instanceof Hero;
-    }
-
-    public AbstractUnit getUnitCurrent() {
-        return this.units.get(this.currentUnit);
-    }
-
-    public boolean isMonsterSelect() {
-        return this.units.get(this.selectedUnit) instanceof Monster;
-    }
-
-    public AbstractUnit getUnitSelect() {
-        return this.units.get(this.selectedUnit);
-    }
-
-    public void nextTurn()
-    {
-        do {
-            this.currentUnit++;
-
-            if (this.currentUnit >= this.units.size()) {
-                this.currentUnit = 0;
-            }
-        } while (!this.getUnitCurrent().isAlive());
-
-        this.getUnitCurrent().getTurn();
-
-        this.animationTimer = 1.0f;
-    }
-
-    public void update(float dt) {
-        if (this.animationTimer > 0.0f) {
-            this.animationTimer -= dt;
-        }
-
-        for (int i = 0; i < units.size(); i++) {
-            this.units.get(i).update(dt);
-
-            if (this.currentUnit != i && InputHandler.checkClickInRect(this.units.get(i).getRect()) && this.units.get(i).isAlive()) {
-                this.selectedUnit = i;
-                this.getUnitCurrent().setTarget(this.getUnitSelect());
-            }
-        }
-
-        if (this.canIMakeTurn()) {
-            if (this.isHeroTurn()) {
-                this.buttonsContainer.enable();
-                this.buttonsContainer.checkClick();
-            } else {
-                this.buttonsContainer.disable();
-
-                if (((Monster)this.getUnitCurrent()).ai(dt)) {
-                    this.nextTurn();
-                }
-            }
-        }
-
-        this.infoSystem.update(dt);
-    }
-
-    public boolean canIMakeTurn() {
-        return this.animationTimer <= 0.0f;
-    }
-
-    public List<BaseAction> getActions() {
-        return actions;
     }
 }

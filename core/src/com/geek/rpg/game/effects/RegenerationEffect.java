@@ -1,34 +1,26 @@
 package com.geek.rpg.game.effects;
 
-import com.geek.rpg.game.AbstractUnit;
+
 import com.geek.rpg.game.FlyingText;
 import com.geek.rpg.game.InfoSystem;
+import com.geek.rpg.game.Unit;
 
-public class RegenerationEffect extends AbstractEffect {
-    /**
-     * Процент залечивания.
-     */
-    final private float HEALING_PERCENT = 0.09f;
-
-    public RegenerationEffect(AbstractUnit unit, int rounds) {
-        super(unit, rounds);
-    }
-
+public class RegenerationEffect extends Effect {
     @Override
-    public void start() {
-        this.getUnit().setRegeneration(true);
+    public void start(InfoSystem infoSystem, Unit unit, int rounds) {
+        super.start(infoSystem, unit, rounds);
+        infoSystem.addMessage("Regeneration 3T/+2HP", unit, FlyingText.Colors.GREEN);
     }
 
     @Override
     public void tick() {
         super.tick();
-
-        this.getUnit().messagePositive("Regeneration");
-        this.getUnit().changeHp((int)(this.getUnit().getMaxHp() * this.HEALING_PERCENT));
+        infoSystem.addMessage("Regeneration", unit, FlyingText.Colors.GREEN);
+        unit.changeHp((int)(unit.getMaxHp() * 0.05f));
     }
 
     @Override
     public void end() {
-        this.getUnit().setRegeneration(false);
+        infoSystem.addMessage("Regeneration end", unit, FlyingText.Colors.WHITE);
     }
 }
