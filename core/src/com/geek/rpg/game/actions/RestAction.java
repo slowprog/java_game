@@ -6,7 +6,7 @@ import com.geek.rpg.game.Unit;
 
 public class RestAction extends BaseAction {
     public RestAction() {
-        super("REST", Assets.getInstance().getAssetManager().get("btnHeal.png", Texture.class));
+        super("REST", "btnHeal");
     }
 
     @Override

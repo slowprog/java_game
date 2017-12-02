@@ -44,14 +44,10 @@ public class Assets {
             case BATTLE:
                 assetManager.load("background.png", Texture.class);
                 assetManager.load("rpg.pack", TextureAtlas.class);
-//                assetManager.load("knight.png", Texture.class);
-//                assetManager.load("skeleton.png", Texture.class);
                 assetManager.load("btnMeleeAttack.png", Texture.class);
                 assetManager.load("btnHeal.png", Texture.class);
                 assetManager.load("btnDefence.png", Texture.class);
-//                assetManager.load("selector.png", Texture.class);
                 assetManager.load("actionPanel.png", Texture.class);
-//                assetManager.load("font.fnt", BitmapFont.class);
                 assetManager.finishLoading();
                 textureAtlas = assetManager.get("rpg.pack", TextureAtlas.class);
                 break;

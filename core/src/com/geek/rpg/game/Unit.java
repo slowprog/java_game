@@ -1,23 +1,20 @@
 package com.geek.rpg.game;
 
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
-import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable;
 import com.geek.rpg.game.actions.BaseAction;
-import com.geek.rpg.game.effects.DefenceStanceEffect;
 import com.geek.rpg.game.effects.Effect;
-import com.geek.rpg.game.effects.RegenerationEffect;
+import com.geek.rpg.game.sceens.BattleScreen;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Unit {
+public class Unit implements Serializable {
     public enum AnimationType {
         IDLE(0), ATTACK(1);
 
@@ -27,34 +24,37 @@ public class Unit {
             this.number = number;
         }
     }
-    private BattleScreen battleScreen;
+
+    transient private BattleScreen battleScreen;
     private Hero hero;
-    private Unit target;
-    private TextureRegion texture;
-    private TextureRegion textureHpBar;
+    transient private Unit target;
+    transient private TextureRegion texture;
+    transient private TextureRegion textureHpBar;
+    private UnitFactory.UnitType type;
     private int hp;
     private int maxHp;
     private int level;
     private Rectangle rect;
     private Autopilot autopilot;
     private Stats stats;
-    private Group actionPanel;
+    transient private Group actionPanel;
     private Vector2 position;
     private boolean flip;
     private float attackAction;
     private float takeDamageAction;
     private List<Effect> effects;
-    private List<BaseAction> actions;
+    transient private List<BaseAction> actions;
 
     private AnimationType currentAnimation;
     private float animationTime;
     private float animationSpeed;
-    private TextureRegion[][] frames;
+    transient private TextureRegion[][] frames;
     private int animationFrame;
     private int maxFrame;
     private int maxAnimationType;
-    private final int WIDTH = 90;
-    private final int HEIGHT = 150;
+
+    public static final int WIDTH = 90;
+    public static final int HEIGHT = 150;
 
     public Autopilot getAutopilot() {
         return autopilot;
@@ -148,13 +148,35 @@ public class Unit {
         return texture;
     }
 
-    public Unit(TextureRegion texture, Stats stats) {
+    public UnitFactory.UnitType getType() {
+        return type;
+    }
+
+    public boolean isFlip() {
+        return flip;
+    }
+
+    public Unit(UnitFactory.UnitType type, TextureRegion texture, Stats stats) {
+        this.type = type;
         this.texture = texture;
         this.effects = new ArrayList<Effect>();
         this.position = new Vector2(0, 0);
         this.actions = new ArrayList<BaseAction>();
         this.stats = stats;
         this.textureHpBar = Assets.getInstance().getAtlas().findRegion("hpBar");
+        this.animationSpeed = 0.2f;
+        this.frames = this.texture.split(WIDTH, HEIGHT);
+        this.maxFrame = this.frames[0].length;
+        this.maxAnimationType = this.frames.length - 1;
+        this.currentAnimation = AnimationType.IDLE;
+    }
+
+    public void reload(TextureRegion texture, List<BaseAction> actions) {
+        this.textureHpBar = Assets.getInstance().getAtlas().findRegion("hpBar");
+        this.texture = texture;
+        this.frames = this.texture.split(WIDTH, HEIGHT);
+        this.actions = actions;
+        this.effects.clear();
         this.animationSpeed = 0.2f;
         this.frames = this.texture.split(WIDTH, HEIGHT);
         this.maxFrame = this.frames[0].length;
@@ -171,7 +193,6 @@ public class Unit {
         this.battleScreen = battleScreen;
         this.position.set(battleScreen.getStayPoints()[cellX][cellY]);
         this.rect = new Rectangle(position.x, position.y, texture.getRegionWidth(), texture.getRegionHeight());
-        this.recalculateSecondaryStats();
     }
 
     public void evade() {
@@ -260,5 +281,18 @@ public class Unit {
 
     public void addEffect(Effect effect) {
         effects.add(effect);
+    }
+
+    /**
+     * Генерация стат юнита в соответствии с указанным уровнем.
+     *
+     * @param newLevel
+     */
+    public void setLevelTo(int newLevel) {
+        this.level = newLevel;
+        // Основные статы.
+        this.stats.recalculate(newLevel);
+        // Второстепенные статы, но можно всё в один класс перенести.
+        this.recalculateSecondaryStats();
     }
 }

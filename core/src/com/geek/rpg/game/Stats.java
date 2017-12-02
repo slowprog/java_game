@@ -1,10 +1,12 @@
 package com.geek.rpg.game;
 
+import java.io.Serializable;
+
 /**
  * Created by FlameXander on 13.11.2017.
  */
 
-public class Stats implements Cloneable {
+public class Stats implements Cloneable, Serializable {
     private int baseStrength;
     private int baseDexterity;
     private int baseEndurance;

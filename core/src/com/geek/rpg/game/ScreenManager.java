@@ -4,6 +4,9 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.geek.rpg.game.sceens.BattleScreen;
+import com.geek.rpg.game.sceens.LoadingScreen;
+import com.geek.rpg.game.sceens.MenuScreen;
 
 /**
  * Created by FlameXander on 13.11.2017.
@@ -23,6 +26,7 @@ public class ScreenManager {
     private RpgGame rpgGame;
     private Viewport viewport;
     private BattleScreen battleScreen;
+    private LoadingScreen loadingScreen;
     private MenuScreen menuScreen;
 
     public Viewport getViewport() {
@@ -32,6 +36,7 @@ public class ScreenManager {
     public void init(RpgGame rpgGame, SpriteBatch batch) {
         this.rpgGame = rpgGame;
         this.battleScreen = new BattleScreen(batch);
+        this.loadingScreen = new LoadingScreen(batch);
         this.menuScreen = new MenuScreen(batch);
         this.viewport = new FitViewport(RpgGame.SCREEN_WIDTH, RpgGame.SCREEN_HEIGHT);
         this.viewport.update(RpgGame.SCREEN_WIDTH, RpgGame.SCREEN_HEIGHT, true);

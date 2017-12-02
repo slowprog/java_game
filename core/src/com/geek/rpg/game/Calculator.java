@@ -13,6 +13,16 @@ public class Calculator {
         return dmg;
     }
 
+    public static int getFireballDamage(Unit attacker, Unit target) {
+        // Пока резистов нет, то target не используется, но потом можно из него брать резисты
+        int dmg = attacker.getStats().getSpellpower();
+        dmg = (int) (dmg * 0.8f + (float) dmg * Math.random() * 0.2f);
+        if (dmg < 1) {
+            dmg = 1;
+        }
+        return dmg;
+    }
+
     public static boolean isTargetEvaded(Unit attacker, Unit target) {
         int attackChance = (int)(85.0f + (attacker.getStats().getDexterity() - target.getStats().getDexterity()) * 0.2f + (attacker.getLevel() - target.getLevel()) * 1.0f);
         if (attackChance > MAX_MELEE_ATTACK_CHANCE) attackChance = MAX_MELEE_ATTACK_CHANCE;

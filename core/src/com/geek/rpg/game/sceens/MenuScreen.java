@@ -1,4 +1,4 @@
-package com.geek.rpg.game;
+package com.geek.rpg.game.sceens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
@@ -15,6 +15,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.geek.rpg.game.Assets;
+import com.geek.rpg.game.GameSession;
+import com.geek.rpg.game.ScreenManager;
 
 /**
  * Created by FlameXander on 16.11.2017.
@@ -61,23 +64,34 @@ public class MenuScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
         skin = new Skin();
 
-//        skin.add("textureButton", Assets.getInstance().getAtlas().findRegion("menuBtn"));
-        skin.add("textureButton", buttonTexture);
-        skin.add("font36", font36);
+        skin.addRegions(Assets.getInstance().getAtlas());
+
+        skin.add( "font36", font36);
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.up = skin.getDrawable("textureButton");
+        textButtonStyle.up = skin.getDrawable("menuBtn");
         textButtonStyle.font = font36;
         skin.add("tbs", textButtonStyle);
 
         Button btnNewGame = new TextButton("START NEW GAME", skin, "tbs");
+        Button btnContinueGame = new TextButton("CONTINUE GAME", skin, "tbs");
         Button btnExitGame = new TextButton("EXIT GAME", skin, "tbs");
-        btnNewGame.setPosition(640 - 240, 300);
-        btnExitGame.setPosition(640 - 240, 180);
+        btnNewGame.setPosition(400, 300);
+        btnContinueGame .setPosition(400, 180);
+        btnExitGame.setPosition(400, 60);
         stage.addActor(btnNewGame);
+        stage.addActor(btnContinueGame);
         stage.addActor(btnExitGame);
         btnNewGame.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
+                GameSession.getInstance().startNewSession();
+                ScreenManager.getInstance().switchScreen(ScreenManager.ScreenType.BATTLE);
+            }
+        });
+        btnContinueGame.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                GameSession.getInstance().loadSession();
                 ScreenManager.getInstance().switchScreen(ScreenManager.ScreenType.BATTLE);
             }
         });

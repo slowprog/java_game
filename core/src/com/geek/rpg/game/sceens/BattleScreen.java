@@ -1,4 +1,4 @@
-package com.geek.rpg.game;
+package com.geek.rpg.game.sceens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
@@ -10,7 +10,6 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
@@ -18,11 +17,19 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.geek.rpg.game.Assets;
+import com.geek.rpg.game.GameSession;
+import com.geek.rpg.game.Hero;
+import com.geek.rpg.game.InfoSystem;
+import com.geek.rpg.game.MyInputProcessor;
+import com.geek.rpg.game.RpgGame;
+import com.geek.rpg.game.ScreenManager;
+import com.geek.rpg.game.SpecialFxEmitter;
+import com.geek.rpg.game.Unit;
+import com.geek.rpg.game.UnitFactory;
 import com.geek.rpg.game.actions.BaseAction;
-import com.geek.rpg.game.actions.DefenceStanceAction;
-import com.geek.rpg.game.actions.MeleeAttackAction;
-import com.geek.rpg.game.actions.RestAction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +37,7 @@ import java.util.List;
 public class BattleScreen implements Screen {
     private SpriteBatch batch;
     private BitmapFont font;
-    private Background background;
+    private Texture textureBackground;
     private List<Unit> units;
     private int currentUnitIndex;
     private Unit currentUnit;
@@ -86,25 +93,46 @@ public class BattleScreen implements Screen {
             }
         }
 
-        Hero player1 = new Hero();
+        Hero player1 = GameSession.getInstance().getPlayer();
+
         Hero player2 = new Hero();
 
-        unitFactory = new UnitFactory(this);
+        unitFactory = new UnitFactory();
+
+        player2.setArmy(
+                unitFactory.createUnit(UnitFactory.UnitType.KNIGHT, true, true, 2),
+                null,
+                unitFactory.createUnit(UnitFactory.UnitType.MAGE, true, true, 2),
+                unitFactory.createUnit(UnitFactory.UnitType.SKELETON, true, true,2),
+                null,
+                null
+        );
+
         units = new ArrayList<Unit>();
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.KNIGHT, this, player1, true, 1, 0);
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.KNIGHT, this, player1, true, 1, 1);
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.KNIGHT, this, player1, true, 1, 2);
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player1, true, 0, 0);
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player1, true, 0, 1);
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player1, true, 0, 2);
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player2, false, 2, 0);
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player2, false, 2, 1);
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.SKELETON, this, player2, false, 2, 2);
-        unitFactory.createUnitAndAddToBattle(UnitFactory.UnitType.KNIGHT, this, player2, false, 3, 1);
+
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (player1.getUnits()[i][j] != null) {
+                    unitFactory.reloadUnit(player1.getUnits()[i][j]);
+                    player1.getUnits()[i][j].setToMap(this, i, j);
+                    units.add(player1.getUnits()[i][j]);
+                }
+            }
+        }
+
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (player2.getUnits()[i][j] != null) {
+                    unitFactory.reloadUnit(player2.getUnits()[i][j]);
+                    player2.getUnits()[i][j].setToMap(this, i + 2, j);
+                    units.add(player2.getUnits()[i][j]);
+                }
+            }
+        }
 
         mip = new MyInputProcessor();
         Gdx.input.setInputProcessor(mip);
-        background = new Background();
+        textureBackground = Assets.getInstance().getAssetManager().get("background.png", Texture.class);;
 
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("zorque.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
@@ -123,7 +151,7 @@ public class BattleScreen implements Screen {
 
         currentUnitIndex = 0;
         currentUnit = units.get(currentUnitIndex);
-//        sfx = new SpecialFX();
+
         specialFxEmitter = new SpecialFxEmitter();
         createGUI();
         InputMultiplexer im = new InputMultiplexer(stage, mip);
@@ -133,18 +161,34 @@ public class BattleScreen implements Screen {
 
     public void createGUI() {
         stage = new Stage(ScreenManager.getInstance().getViewport(), batch);
-        skin = new Skin();
+        skin = new Skin(Assets.getInstance().getAtlas());
+
+        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+        textButtonStyle.up = skin.getDrawable("menuBtn");
+        textButtonStyle.font = font;
+        skin.add("tbs", textButtonStyle);
+
+        Button btnMenu= new TextButton("MENU", skin, "tbs");
+        btnMenu.setPosition(1000, 600);
+        stage.addActor(btnMenu);
+        btnMenu.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                GameSession.getInstance().saveSession();
+                ScreenManager.getInstance().switchScreen(ScreenManager.ScreenType.MENU);
+            }
+        });
+
         List<BaseAction> list = unitFactory.getActions();
         for (BaseAction o : list) {
-            skin.add(o.getName(), o.getBtnTexture());
             Button.ButtonStyle buttonStyle = new Button.ButtonStyle();
-            buttonStyle.up = skin.newDrawable(o.getName(), Color.WHITE);
+            buttonStyle.up = skin.newDrawable(o.getTextureName());
             skin.add(o.getName(), buttonStyle);
         }
         for (Unit o : units) {
             if (!o.isAI()) {
                 Group actionPanel = new Group();
-                Image image = new Image(Assets.getInstance().getAssetManager().get("actionPanel.png", Texture.class));
+                Image image = new Image(Assets.getInstance().getAtlas().findRegion("actionPanel"));
                 actionPanel.addActor(image);
                 actionPanel.setPosition(RpgGame.SCREEN_WIDTH / 2 - 840 / 2, 5);
                 actionPanel.setVisible(false);
@@ -152,6 +196,7 @@ public class BattleScreen implements Screen {
                 stage.addActor(actionPanel);
 
                 int counter = 0;
+                final Unit innerUnit = o;
                 for (BaseAction a : o.getActions()) {
                     final BaseAction ba = a;
                     Button btn = new Button(skin, a.getName());
@@ -159,8 +204,8 @@ public class BattleScreen implements Screen {
                     btn.addListener(new ChangeListener() {
                         @Override
                         public void changed(ChangeEvent event, Actor actor) {
-                            if (!currentUnit.isAI()) {
-                                if (ba.action(currentUnit)) {
+                            if (!innerUnit.isAI()) {
+                                if (ba.action(innerUnit)) {
                                     nextTurn();
                                 }
                             }
@@ -219,13 +264,7 @@ public class BattleScreen implements Screen {
             }
         }
         infoSystem.update(dt);
-//        if (mip.isTouched()) {
-//            sfx.setup(mip.getX(), mip.getY());
-//        }
         specialFxEmitter.update(dt);
-//        if (sfx.isActive()) {
-//            sfx.update(dt);
-//        }
     }
 
     @Override
@@ -234,7 +273,7 @@ public class BattleScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         batch.begin();
-        background.render(batch);
+        batch.draw(textureBackground, 0, 0);
         batch.setColor(1, 1, 0, 0.8f);
         batch.draw(textureSelector, currentUnit.getPosition().x, currentUnit.getPosition().y - 5);
         if (isHeroTurn() && currentUnit.getTarget() != null) {
@@ -249,9 +288,6 @@ public class BattleScreen implements Screen {
             }
         }
         infoSystem.render(batch, font);
-//        if (sfx.isActive()) {
-//            sfx.render(batch);
-//        }
         specialFxEmitter.render(batch);
         batch.end();
         stage.draw();

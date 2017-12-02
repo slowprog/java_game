@@ -6,7 +6,7 @@ import com.geek.rpg.game.*;
 
 public class MeleeAttackAction extends BaseAction {
     public MeleeAttackAction() {
-        super("MELEE_ATTACK", Assets.getInstance().getAssetManager().get("btnMeleeAttack.png", Texture.class));
+        super("MELEE_ATTACK", "btnMeleeAttack");
     }
 
     @Override
@@ -23,8 +23,7 @@ public class MeleeAttackAction extends BaseAction {
         } else {
             me.getTarget().evade();
         }
-        me.getBattleScreen().getSpecialFxEmitter().setup(me, me.getTarget(), 1.0f, 2f, 2f, true);
-        me.getBattleScreen().getSpecialFxEmitter().setup(me.getTarget(), me.getTarget(), 5.0f, 2f, 20f, true);
+
         return true;
     }
 }

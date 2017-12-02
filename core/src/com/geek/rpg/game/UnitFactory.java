@@ -3,6 +3,7 @@ package com.geek.rpg.game;
 import com.badlogic.gdx.graphics.Texture;
 import com.geek.rpg.game.actions.BaseAction;
 import com.geek.rpg.game.actions.DefenceStanceAction;
+import com.geek.rpg.game.actions.FireballAction;
 import com.geek.rpg.game.actions.MeleeAttackAction;
 import com.geek.rpg.game.actions.RestAction;
 
@@ -17,10 +18,9 @@ import java.util.Map;
 
 public class UnitFactory {
     public enum UnitType {
-        KNIGHT, SKELETON;
+        KNIGHT, SKELETON, MAGE;
     }
 
-    private BattleScreen battleScreen;
     private Map<UnitType, Unit> data;
     private List<Autopilot> aiBank;
     private List<BaseAction> actions;
@@ -29,8 +29,7 @@ public class UnitFactory {
         return actions;
     }
 
-    public UnitFactory(BattleScreen battleScreen) {
-        this.battleScreen = battleScreen;
+    public UnitFactory() {
         this.createActions();
         this.aiBank = new ArrayList<Autopilot>();
         this.aiBank.add(new Autopilot() {
@@ -40,11 +39,16 @@ public class UnitFactory {
                     return false;
                 }
                 Unit target = null;
+                int counter = 0;
                 do {
                     target = me.getBattleScreen().getUnits().get((int) (Math.random() * me.getBattleScreen().getUnits().size()));
-                } while (target.isAI());
+                    counter++;
+                    if (counter > 1000) break;
+                } while (me.isMyTeammate(target) || !target.isAlive());
+
                 me.setTarget(target);
                 me.getActions().get(0).action(me);
+
                 return true;
             }
         });
@@ -53,43 +57,55 @@ public class UnitFactory {
 
     public void createActions() {
         this.actions = new ArrayList<BaseAction>();
+
         this.actions.add(new MeleeAttackAction());
         this.actions.add(new DefenceStanceAction());
         this.actions.add(new RestAction());
+        this.actions.add(new FireballAction());
     }
 
     public void createUnitPatterns() {
         data = new HashMap<UnitType, Unit>();
-        Stats knightStats = new Stats(1, 20, 10, 30, 2, 5, 1.0f, 0.2f, 1.0f, 0.2f, 1.0f);
-        Unit knight = new Unit(Assets.getInstance().getAtlas().findRegion("knightAnim"), knightStats);
+        Stats knightStats = new Stats(1, 20, 10, 30, 2, 5, 5.0f, 1f, 5.0f, 1f, 5.0f);
+        Unit knight = new Unit(UnitType.KNIGHT, Assets.getInstance().getAtlas().findRegion("knightAnim"), knightStats);
         knight.getActions().add(actions.get(0));
         knight.getActions().add(actions.get(1));
         data.put(UnitType.KNIGHT, knight);
 
-        Stats skeletonStats = new Stats(1, 10, 20, 15, 1, 0, 0.5f, 1.0f, 1.0f, 0.2f, 0.1f);
-        Unit skeleton = new Unit(Assets.getInstance().getAtlas().findRegion("skeleton"), skeletonStats);
+        Stats skeletonStats = new Stats(1, 10, 20, 15, 1, 0, 2.5f, 5.0f, 5.0f, 1f, 0.5f);
+        Unit skeleton = new Unit(UnitType.SKELETON, Assets.getInstance().getAtlas().findRegion("skeleton"), skeletonStats);
         skeleton.getActions().add(actions.get(0));
         skeleton.getActions().add(actions.get(2));
         data.put(UnitType.SKELETON, skeleton);
+
+        Stats mageStats = new Stats(1, 10, 10, 10, 0, 15, 0.5f, 0.5f, 0.5f, 0.2f, 5f);
+        Unit mage = new Unit(UnitType.MAGE, Assets.getInstance().getAtlas().findRegion("mage"), mageStats);
+        mage.getActions().add(actions.get(3));
+        mage.getActions().add(actions.get(2));
+        data.put(UnitType.MAGE, mage);
     }
 
-    public Unit createUnit(UnitType unitType, boolean isHuman) {
-        Unit unitPattern = data.get(unitType);
-        Unit unit = new Unit(unitPattern.getTexture(), (Stats) unitPattern.getStats().clone());
-        unit.setActions(unitPattern.getActions());
-        if (!isHuman) {
+    public void reloadUnit(Unit unit) {
+        Unit unitPattern = data.get(unit.getType());
+        unit.reload(unitPattern.getTexture(), unitPattern.getActions());
+
+        if (unit.isAI()) {
             unit.setAutopilot(aiBank.get(0));
         }
-        return unit;
     }
 
-    public void createUnitAndAddToBattle(UnitType unitType, BattleScreen battleScreen, Hero hero, boolean isHuman, int x, int y) {
-        Unit unit = createUnit(unitType, isHuman);
-        unit.setToMap(battleScreen, x, y);
-        unit.setHero(hero);
-        if (!isHuman) {
-            unit.setFlip(true);
+    public Unit createUnit(UnitType unitType, boolean flip, boolean ai, int level) {
+        Unit unitPattern = data.get(unitType);
+        Unit unit = new Unit(unitType, unitPattern.getTexture(), (Stats) unitPattern.getStats().clone());
+
+        unit.setLevelTo(level);
+        unit.setActions(unitPattern.getActions());
+        unit.setFlip(flip);
+
+        if (ai) {
+            unit.setAutopilot(aiBank.get(0));
         }
-        battleScreen.getUnits().add(unit);
+
+        return unit;
     }
 }

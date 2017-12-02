@@ -19,7 +19,7 @@ public class SpecialFX {
     private TextureRegion[] regions;
 
     public boolean isActive() {
-        return time > 0.0f;
+        return time > -100.0f;
     }
 
     public SpecialFX() {
@@ -28,7 +28,7 @@ public class SpecialFX {
         position = new Vector2(0, 0);
         maxFrames = 64;
         frameSpeed = 0.01f;
-        time = -1.0f;
+        time = -100.0f;
         scaleFrom = 1.0f;
         scaleTo = 1.0f;
         maxTime = maxFrames * frameSpeed;
@@ -44,7 +44,7 @@ public class SpecialFX {
         }
     }
 
-    public void setup(float xFrom, float yFrom, float xTo, float yTo, float maxTime, float scaleFrom, float scaleTo, boolean oneCycle) {
+    public void setup(float xFrom, float yFrom, float xTo, float yTo, float maxTime, float scaleFrom, float scaleTo, float delay, boolean oneCycle) {
         this.positionFrom.set(xFrom, yFrom);
         this.positionTo.set(xTo, yTo);
         this.maxTime = maxTime;
@@ -58,10 +58,11 @@ public class SpecialFX {
         this.time = 0.01f;
         this.scaleFrom = scaleFrom;
         this.scaleTo = scaleTo;
+        this.time = -delay;
     }
 
     public void render(SpriteBatch batch) {
-        if (isActive()) {
+        if (isActive() && time > 0.0f) {
             int currentFrame = (int) (time / frameSpeed) % maxFrames;
             float x = positionFrom.x + (time / maxTime) * (positionTo.x - positionFrom.x);
             float y = positionFrom.y + (time / maxTime) * (positionTo.y - positionFrom.y);
@@ -74,7 +75,7 @@ public class SpecialFX {
         if (isActive()) {
             time += dt;
             if (time > maxTime) {
-                time = -1.0f;
+                time = -100.0f;
             }
         }
     }
